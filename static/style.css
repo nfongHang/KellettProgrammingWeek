@@ -1,0 +1,193 @@
+@font-face {
+    font-family: consolas;
+    src: url(CONSOLA.TTF);
+}
+/*/
+#357ED4 dark blue
+#131313 selected black
+#373737 background black/dark gray
+#67C9FF variable light blue
+#BA73CF for loop purple
+#47D9B3 class green
+#444444 line index number gray
+#E3E3E3 normal text white
+#CE9178 string orange
+#E5DEA5 input yellow
+#6A9955 comment green
+ */
+
+#top_bar{height:100px; 
+    background-color: #131313; 
+    color: #DB9254; 
+    font-size:calc(1.5rem + 3vw);
+    font-family: consolas;
+    padding: 0.35%;
+}
+#title{height:50px; 
+    background-color:rgba(3, 7, 28, 0.6);
+    color:white;
+    font-size: calc(0.45rem + 0.9vw);
+    font-family: consolas;
+}
+#link_button{
+    font-family: consolas;
+    color:#67C9FF;
+    background-color: #444444;
+    border-color:#8888;;
+    border-radius: 15px;
+    font-size:calc(0.5rem + 1vw);
+}
+
+input[type=submit]:hover{
+    text-decoration:underline;
+}
+
+input[type=text]:focus{
+    outline: 2px solid #9a8b79;
+  }
+input[type=password]:focus{
+    outline: 2px solid #9a8b79;    
+  }
+form{
+    display:inline
+}
+#box{
+    background-color: #2a2a2a;
+    margin:auto;
+    margin-top: 2.5%;
+    border-radius: 25px;
+    padding-left: 15px;
+    padding-top: 15px;
+    margin-bottom: 2.5%;
+}
+#line_num{
+    font-family: consolas;
+    font-size:calc(0.5rem + 1vw);
+    color: #444444;
+
+}
+#class_text{
+    font-family: consolas;
+    color: #BA73CF;
+    font-size:calc(0.5rem + 1vw);
+}
+#text_input{
+    font-family:consolas;
+    color:#CE9178;
+    font-size:calc(0.45rem + 0.9vw);
+    background-color: #13131369;
+    border:#131313;
+    padding-left: 0.25%;
+    border-radius: 7.5px;
+
+}
+#select_bar{
+    background-color: #131313; 
+    height:auto;
+}
+#vartext{
+    font-family: consolas;
+    color:#67C9FF;
+    font-size:calc(0.5rem + 1vw);
+}
+#normaltext{
+    font-family: consolas;
+    color: #E3E3E3;
+    font-size:calc(0.5rem + 1vw);
+}
+#stringtext{
+    font-family: consolas;
+    color:#CE9178;
+    font-size:calc(0.5rem + 1vw);
+}
+
+#button{
+    font-family: consolas;
+    color:#E5DEA5;
+    background-color: #444444;
+    border-color:#8888;;
+    border-radius: 15px;
+    font-size:calc(0.45rem + 0.9vw);
+    
+}
+#commenttext{
+    font-family: consolas;
+    color:#6A9955;
+    font-size:calc(0.5rem + 1vw);
+}
+
+#inputtext{
+    font-family: consolas;
+    color: #E5DEA5;
+    font-size:calc(0.5rem + 1vw);
+}
+
+#choice{
+    font-family: consolas;
+    color:#CE9178;
+    font-size:calc(0.5rem + 1vw);
+}
+input[type="radio"] {
+    color:#67C9FF;
+    size: 20px
+}
+#totp{
+    color:#67C9FF;
+    size: 20px;
+}
+input[name="otp"]:focus{
+    outline: 3px solid #b3e3ff9a;
+    border: 7px solid #b3e3ff9a;
+    box-shadow: 0px 0px 16px #b3e3ff72;
+}
+input[name="otp"]{
+    font-family: consolas;
+    border-radius: 25px;
+    color:#727272;
+    font-size: calc(1.5rem + 3vw);
+    background-color: #E3E3E3;
+    width:3.25vw;
+    text-align: center;
+    height:5vw;
+    margin: 0.25vw;
+    border: 7px inset #545454;
+    box-shadow: inset 0 0 10px #1313137e;
+    caret-color: transparent;    
+}
+
+#otp{
+    border-radius: 10px;
+    border-width: 5px;
+    text-align: center;
+    margin:auto;
+    width:40%;
+    background-color: #444444;
+    padding:2%;
+    box-shadow: 0 0 10px #131313d5;
+}
+
+button{
+    font-family: consolas;
+    border: outset 7px #a9a9a9;
+    border-radius: 15px;
+    background-color: #868686;
+    text-align: center;
+    font-size: calc(0.75rem + 1.5vw);
+    color:#000000;
+    width:auto;
+    box-shadow: 0 6px #00000029
+}
+button:hover{
+    outline: 3px solid #b3e3ff9a;
+    box-shadow: 0px 0px 16px #b3e3ff72;
+}
+button:active{
+    transform: translateY(4px);
+    border: inset 7px #626262;
+    border-bottom-width: 4.75px;
+    border-top-width: 8.75px;
+    background-color: #7b7b7b;
+    box-shadow: 0 2px #00000029;
+    box-shadow: 0px 0px 16px #b3e3ff72, inset 0px 0px 16px #b3e3ff72; 
+}
+
