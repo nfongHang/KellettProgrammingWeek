@@ -4,7 +4,7 @@ from sqlalchemy.orm import declarative_base
 import os
 
 
-db_url='sqlite:///main.db' # path to database
+db_url='mysql:///main.db' # path to database
 
 engine = sa.create_engine(db_url) # connect to server
 
@@ -20,6 +20,7 @@ class User(base):
     username = Column(String)
     pwd_hash = Column(String)
     user_score = Column(Integer)
+    salt = Column(String)
 
 class Questions(base):
     __tablename__ = "questions"

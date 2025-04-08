@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html style="background-color:#1b1b1b;">
+    <head>
+        <title>Kellett Programming | Authenticate</title>
+        <link rel="icon" type="image/png" href="kellett_logo.png"/>
+        <link rel="icon" type="image/png" href="kellett_logo_light.png" media="(prefers-color-scheme:dark)"/>
+        <link rel="icon" type="image/png" href="kellett_logo_dark.png" media="(prefers-color-scheme:light)"/>
+        <link rel="stylesheet" href="/static/style.css">
+        
+    </head>
+
+    <body>
+        <div id="top_bar">
+            C:\Kellett_Programming_Week\2fa>
+        </div>
+
+        <div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*10" id="box">
+            <div id="line_num">
+                01 | <span id="class_text">import pyotp</span>
+            </div>
+            <div id="line_num">
+                02 | <span id="commenttext"># To setup your TOTP Two factor authentication, </span>
+            </div>
+            <div id="line_num">
+                03 | <span id="commenttext"># please use Google Authenticator or Authy and enter in the following code. </span>
+            </div>
+            <div id="line_num">
+                04 | <span id="commenttext"># your code is: </span><span id="vartext">{{code}}</span>
+            </div>
+            <div id="line_num">
+                05 | <span id="stringtext">Do not show this code to anyone else. </span>
+            </div>
+            <div id="line_num">
+                06 | <span id="commenttext"># Alternatively, you can scan the following qr code:</span>
+            </div>
+            <div id="line_num", style="display:flex"> 07 | 
+            <img src="{{qr}}" style="position:relative; left:38.5%" alt="TOTP QR Code" height="15%" width="15%",>
+            </div>
+            <div id="line_num">
+                08 | <span id="commenttext"># Once you have done so, please enter in the OTP code that shows up.</span>
+            </div>
+            <br>
+            <div class="otp_box" >
+                <br>
+                <form action="#" id="form" method="post">
+                <div id="otp">
+                    <input type="text" id="first" maxlength="1" name="otp"> 
+                    <input type="text" id="second" maxlength="1" name="otp">
+                    <input type="text" id="third" maxlength="1" name="otp">
+                    <input type="text" id="fourth" maxlength="1" name="otp">
+                    <input type="text" id="fifth" maxlength="1" name="otp">
+                    <input type="text" id="sixth" maxlength="1" name="otp"><br>
+                    
+                    <br><br>
+                    <button type="submit" id="totp_button" value="submit">submit</button>
+                </div> 
+                
+                </form>
+                <script src="/static/otp_input_script.js"></script>
+                <br>
+            </div>
+            
+            <br>
+        </div>
+    </body>
+</html>
+
+<!--TODO: 
+please finish the code for retireving the totp code, implement 2fa timeout, get it to sign in, manage edge cases such as not inputting anything, 
+then start working on the email 2fa alternative. should work the same using pyotp and totp.now but this is a problem for you lmao see myself tomorrooowwww 
+make the button for: sign up, login and 2fa be inactive/disabled until fields have been entered.
+-->

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html style="background-color:#1b1b1b;">
+    <head>
+        <title>Kellett Programming | Authenticate</title>
+        <link rel="icon" type="image/png" href="kellett_logo.png"/>
+        <link rel="icon" type="image/png" href="kellett_logo_light.png" media="(prefers-color-scheme:dark)"/>
+        <link rel="icon" type="image/png" href="kellett_logo_dark.png" media="(prefers-color-scheme:light)"/>
+        <link rel="stylesheet" href="static/style.css">
+    </head>
+
+    <body>
+        <div id="top_bar">
+            > Kellett Programming Week
+        </div>
+
+        <div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*10" id="box">
+            <div id="line_num">
+                01 | <span id="class_text">import pyotp</span>
+            </div>
+            <div id="line_num">
+                02 | <span id="commenttext"># please enter the OTP using Google Authenticator. do not show this to anyone else!</span>
+            </div>
+            <div id="line_num">
+                03 | <span id="commenttext"># your code is: {{code}}</span>
+            </div>
+            <div id="line_num">
+                05 | 
+                <span id="vartext">password</span> 
+                <span id="normaltext">=</span>
+                <span id="inputtext">input(</span><!--
+             --><span id="stringtext">"</span><!--
+             --><input type="password" style="width: 8.5ch" name="password" onkeypress="if (parseInt(this.style.width)<=45){this.style.width = (this.value.length + 2)+'ch'}; 
+                                                                        if(parseInt(this.value.length)<=45){this.style.width=(this.value.length+2)+'ch'};" 
+                                                                        id = "text_input"  placeholder=password
+                                                                        onpaste="return false;" ondrop="return false;" autocomplete="off"
+                                                                        ><!--
+             --><span id="stringtext">"</span><!--
+             --><span id="inputtext">)</span>
+            </div>
+        </div>
+    </body>
+</html>
