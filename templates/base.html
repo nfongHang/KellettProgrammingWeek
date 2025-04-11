@@ -1,11 +1,21 @@
+
 <!DOCTYPE html>
 <html style="background-color: #1B1B1B;">
     <head>
+        {% block head %}
         <title>Kellett Programming | {%block title %}{% endblock %}</title>
-        <link rel="icon" type="image/png" href="kellett_logo.png"/>
-        <link rel="icon" type="image/png" href="kellett_logo_light.png" media="(prefers-color-scheme:dark)"/>
-        <link rel="icon" type="image/png" href="kellett_logo_dark.png" media="(prefers-color-scheme:light)"/>
-        <link rel="stylesheet" href="style.css">
-        <script src="script.js"></script> 
+        <link rel="icon" type="image/png" href="static/kellett_logo.png"/>
+        <link rel="icon" type="image/png" href="static/kellett_logo_light.png" media="(prefers-color-scheme:dark)"/>
+        <link rel="icon" type="image/png" href="static/kellett_logo_dark.png" media="(prefers-color-scheme:light)"/>
+        <link rel="stylesheet" href="static/style.css">
+        {% endblock %}
     </head>
+    <body>
+        <div id="top_bar">
+            C:\kellett_programming_week\{% block top_bar %}{% endblock %}
+        </div>
+        {% block body %}{% endblock %}
+    </body>
 </html>
+
+

@@ -1,0 +1,28 @@
+apr 11th 2025
+
+TODO:
+finish the sign up <-- almost done, finish the uuid system
+clean up code
+finish requirements page (jesus how many libraries did i import)
+find a way to hide the passwords so that i can finally start pushing my shit lmaaooo
+make the 2fa page have a button to resend email if needed
+add recovery method if otp secret is lost
+find a way to get email to send link as alternative method (not really important it just seems easier for the user)
+finish login
+finish 2fa for login
+hook everything up to sql
+finish account page
+make method for teachers to be able to create accounts 
+allow classes to be made by teacher accounts
+make the houses thing 
+make a dynamically changing house score thing
+start making index page
+start making the question page be modular / dynamic
+    allows for any amount of questions to be added -- the sql database has bascially already been designed around that
+add timer for each question before it is revealed
+
+design questions and find way to verify questions (should be relatively okay)
+success
+yippee
+
+also clean up your own shit the code is so awful and hard to read rn

@@ -1,0 +1,94 @@
+<!-- template -->
+{% extends "base.html" %}
+{% block title %}Authenticate{% endblock %}
+<!-- Top bar text -->
+{% block top_bar %}signup\2fa{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% endblock %}
+
+{% block body %}
+<!--insert body-->
+
+<div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*10" id="box">
+    {% if type=="totp" %}
+    <div id="line_num">
+        01 | <span id="class_text">import pyotp</span>
+    </div>
+    <div id="line_num">
+        02 | <span id="commenttext"># To setup your TOTP Two factor authentication, </span>
+    </div>
+    <div id="line_num">
+        03 | <span id="commenttext"># please use Google Authenticator or Authy and enter in the following code. </span>
+    </div>
+    <div id="line_num">
+        04 | <span id="commenttext"># your code is: </span><span id="vartext">{{code}}</span>
+    </div>
+    <div id="line_num">
+        05 | <span id="stringtext">Do not show this code to anyone else. </span>
+    </div> b vbcvbcbvcbvcbbvcbvbvcbvcv 
+    <div id="line_num">
+        06 | <span id="commenttext"># Alternatively, you can scan the following qr code:</span>
+    </div>
+    <div id="line_num", style="display:flex"> 07 | 
+    <img src="{{qr}}" style="position:relative; left:38.5%" alt="TOTP QR Code" height="15%" width="15%",>
+    </div>
+    <div id="line_num">
+        08 | <span id="commenttext"># Once you have done so, please enter in the OTP code that shows up.</span>
+    </div>
+    <br>
+    
+    
+    
+    {% elif type=="email" %}
+    <div id="line_num">
+        01 | <span id="class_text">import email_otp</span>
+    </div>
+    <div id="line_num">
+        02 | <span id="commenttext"># To setup your TOTP Two factor authentication, </span>
+    </div>
+    <div id="line_num">
+        03 | <span id="commenttext"># please look through your email for the 6 digit code. </span>
+    </div>
+    <div id="line_num">
+        04 | <span id="commenttext"># if you are unable to find it, try checking through your spam and junk mail.</span>
+    </div>
+    <div id="line_num">
+        05 | <span id="stringtext">Do not show this code to anyone else. </span>
+    </div>
+    <div id="line_num">
+        08 | <span id="commenttext"># Once you have found it, please enter in the OTP code that shows up.</span>
+    </div>
+    <br>
+    {% endif %}
+
+
+
+    <div class="otp_box" >
+        <form action="#" id='code' method="post">
+        <br>
+        <div id="otp">
+            <input type="text" id="otp_input" maxlength="1" name="otp1"> 
+            <input type="text" id="otp_input" maxlength="1" name="otp2">
+            <input type="text" id="otp_input" maxlength="1" name="otp3">
+            <input type="text" id="otp_input" maxlength="1" name="otp4">
+            <input type="text" id="otp_input" maxlength="1" name="otp5">
+            <input type="text" id="otp_input" maxlength="1" name="otp6">
+            <div class="insert_button"></div>
+        </div> 
+        <br>
+        </form>
+        <script src="/static/otp_input_script.js"></script>
+    </div>
+    <br>
+</div>
+{% endblock %}
+
+
+
+<!--TODO: 
+please finish the code for retireving the totp code, implement 2fa timeout, get it to sign in, manage edge cases such as not inputting anything, 
+
+make the button for: sign up and login be inactive/disabled until fields have been entered.
+--> 

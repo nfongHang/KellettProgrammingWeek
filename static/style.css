@@ -135,12 +135,12 @@ input[type="radio"] {
     color:#67C9FF;
     size: 20px;
 }
-input[name="otp"]:focus{
+input[id="otp_input"]:focus{
     outline: 3px solid #b3e3ff9a;
     border: 7px solid #b3e3ff9a;
     box-shadow: 0px 0px 16px #b3e3ff72;
 }
-input[name="otp"]{
+input[id="otp_input"]{
     font-family: consolas;
     border-radius: 25px;
     color:#727272;
@@ -161,14 +161,12 @@ input[name="otp"]{
     text-align: center;
     margin:auto;
     width:40%;
-    background-color: #444444;
     padding:2%;
     box-shadow: 0 0 10px #131313d5;
 }
 
 button{
     font-family: consolas;
-    border: outset 7px #a9a9a9;
     border-radius: 15px;
     background-color: #868686;
     text-align: center;
