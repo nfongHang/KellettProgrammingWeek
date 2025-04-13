@@ -16,6 +16,7 @@
     <div id="line_num">
         01 | <span id="class_text">import pyotp</span>
     </div>
+    {% if signup==True %}
     <div id="line_num">
         02 | <span id="commenttext"># To setup your TOTP Two factor authentication, </span>
     </div>
@@ -27,7 +28,7 @@
     </div>
     <div id="line_num">
         05 | <span id="stringtext">Do not show this code to anyone else. </span>
-    </div> b vbcvbcbvcbvcbbvcbvbvcbvcv 
+    </div> 
     <div id="line_num">
         06 | <span id="commenttext"># Alternatively, you can scan the following qr code:</span>
     </div>
@@ -38,6 +39,14 @@
         08 | <span id="commenttext"># Once you have done so, please enter in the OTP code that shows up.</span>
     </div>
     <br>
+    {% elif signup==False %}
+    <div id="line_num">
+        02 | <span id="commenttext"># please use Google Authenticator or Authy which you registered your secret code with</span>
+    </div>
+    <div id="line_num">
+        02 | <span id="commenttext"># and enter in the following code shown in the app into the box below. </span>
+    </div>
+    {% endif %}
     
     
     
@@ -46,10 +55,10 @@
         01 | <span id="class_text">import email_otp</span>
     </div>
     <div id="line_num">
-        02 | <span id="commenttext"># To setup your TOTP Two factor authentication, </span>
+        02 | <span id="commenttext"># To complete your Two Factor Authentication, </span>
     </div>
     <div id="line_num">
-        03 | <span id="commenttext"># please look through your email for the 6 digit code. </span>
+        03 | <span id="commenttext"># please look through your email {email} for the 6 digit code. </span>
     </div>
     <div id="line_num">
         04 | <span id="commenttext"># if you are unable to find it, try checking through your spam and junk mail.</span>
@@ -80,7 +89,7 @@
         <br>
         </form>
         <script src="/static/otp_input_script.js"></script>
-    </div>
+    </div>      
     <br>
 </div>
 {% endblock %}
