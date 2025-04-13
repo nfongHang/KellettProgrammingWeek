@@ -10,6 +10,7 @@ __pycache__/
 # C extensions
 *.so
 creds.py
+main.sql
 # Distribution / packaging
 .Python
 build/
@@ -174,4 +175,3 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
-creds.py

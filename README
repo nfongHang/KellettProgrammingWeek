@@ -1,10 +1,8 @@
 apr 11th 2025
 
 TODO:
-finish the sign up <-- almost done, finish the uuid system
 clean up code
 finish requirements page (jesus how many libraries did i import)
-find a way to hide the passwords so that i can finally start pushing my shit lmaaooo
 make the 2fa page have a button to resend email if needed
 add recovery method if otp secret is lost
 find a way to get email to send link as alternative method (not really important it just seems easier for the user)

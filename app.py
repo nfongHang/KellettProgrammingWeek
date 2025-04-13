@@ -19,11 +19,14 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 import secrets
+import hashlib
+import hmac
 
 from io import BytesIO
 import qrcode
 from flask_mail import Mail, Message
 import creds
+import uuid
 # Creating a Flask instance
 app = Flask(__name__)
 # Add the databases
@@ -43,7 +46,6 @@ app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_PASSWORD'] = creds.mail_pwd
 
 mail=Mail(app)
-
 
 # general functions
 def execute_sql(query : str, param={}):
@@ -88,14 +90,16 @@ def send_2fa_email(address, code):
 
 @app.route("/")
 def index():
+    print(session)
     return render_template("index.html")
 
 @app.route("/login", methods = ["POST", "GET"])
 def login():
+    
     print(request.method)
-    if request.method != "POST":
+    if request.method == "GET":
         return render_template("login.html") # initial login state
-    else:
+    elif request.method == "POST":
         # retrieve form inputs
         email = request.form["email"]
         password = request.form["password"].encode()
@@ -124,26 +128,40 @@ def login():
         
         session['uid'] = user.uid                                                                       # general user information.
         session['email'] = email                                                                        #
-        
         session['last_action'] = "login"                                                                # record information of what the last action the user did
         match user.two_factor_auth_type:
-            case None:
+            case None: # invalid two factor authentication
+                flash("User error: Unrecognized authentication method")
                 redirect(url_for("/"))
-            case "totp":
-                secret = 222222
-                if not "DECRYPTED" in str(secret)[-9:]:
-                    flash("Secret key was not decrypted properly", "error")
-                    return redirect(url_for("login"))
-                
-                session['2fa_secret'] = secret
-                session['2fa_required'] = True                                                                  # saves whether if user needs to do a 2fa or not.
-                session['2fa_type'] = user.two_factor_auth_type
-                
-                session['2fa_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).isoformat()         # set timeout/expiry of 2fa secret
-                return redirect(url_for("verify"))
-            case "email_2fa":
-                pass
 
+            case "totp":
+                session['2fa_required'] = True # saves in session whether if user needs to do a 2fa or not.
+                session['attempts'] = 0 # count attempts made to enter 2fa code
+                if user.two_factor_auth_type=="totp":
+                    # creating secret key for user
+                    # generate key using password
+                    kdf = PBKDF2HMAC(
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt=user.secret_salt,
+                    iterations=480000,
+                    backend = default_backend() # potentially dangerous?
+                    )
+                    
+                    session['encrypted_2fa_secret'] = user.secret # gets deleted later
+                    # encrypt 2fa secret here in order to keep the password always within signup page and isnt stored afterwards.
+                    key=base64.urlsafe_b64encode(kdf.derive(password)) # key derived using password
+                    session['2fa_secret'] = Fernet(key).decrypt(user.secret) # encrypted using key generated above
+                    session['2fa_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).isoformat() # set expiry
+                    session['2fa_type'] = "totp"
+            case "email":
+                # generate 6 digit code
+                session['2fa_code'], session['2fa_expiry']=generate_email_otp() 
+                session['2fa_type'] = "email"
+                if not send_2fa_email(session['email'], session['2fa_code']): # if code unsuccessfully sent:
+                    # render site
+                    flash("Email unable to be sent due to unexpected error.", "error")
+        return redirect(url_for("authenticate"))
 
 @app.route("/signup", methods = ["POST", "GET"])
 def signup():
@@ -170,7 +188,7 @@ def signup():
         # hashing the password using bcrypt    
         hashed_password = bcrypt.hashpw(password, salt)
                                                                                                          # general user information. UID should only be generated when the account is confirmed to be created.
-        session['email'] = email                                                                        #
+        session['email'] = email
         session['last_action'] = "signup" 
         session['2fa_required'] = False 
         session['hashed_password']=hashed_password
@@ -181,13 +199,14 @@ def signup():
             if request.form["2fa_type"]=="totp":
                 # creating secret key for user
                 # generate key using password
+                user_salt=os.urandom(16)
                 kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=os.urandom(16),
-                iterations=480000,
-                backend = default_backend() # potentially dangerous?
-                )
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt=user_salt,
+                    iterations=480000,
+                    backend = default_backend() # potentially dangerous?
+                    )
                 secret=generate_2fa_secret() 
                 session['2fa_secret'] = secret # gets deleted later
                 # encrypt 2fa secret here in order to keep the password always within signup page and isnt stored afterwards.
@@ -195,6 +214,7 @@ def signup():
                 session['encrypted_2fa_secret'] = Fernet(key).encrypt(secret) # encrypted using key generated above
                 session['2fa_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).isoformat() # set expiry
                 session['2fa_type'] = "totp"
+                session['secret_salt'] = user_salt
 
             elif request.form["2fa_type"]=="email":
                 # generate 6 digit code
@@ -207,27 +227,32 @@ def signup():
             else:
                 flash("Invalid 2fa type", "error")
                 return redirect(url_for("signup"))
-
         
         if session['2fa_required'] == False:
-            return redirect(url_for("")) #return to home page
+            flash("2fa Method is required.","error")
+            return redirect(url_for("signup")) #return to home page
         else:
-            return redirect(url_for("setup_2fa"))
+            return redirect(url_for("authenticate"))
         
     else:
         print('a')
         return render_template("signup.html")
 
-@app.route("/setup_2fa", methods=["GET","POST"])
-def setup_2fa( ):
+@app.route("/authenticate", methods=["GET","POST"])
+def authenticate():
     #check for expiry
-    if datetime.datetime.now().isoformat()<session['2fa_expiry'] and session['attempts']<=5:
-        if request.method=="GET":
-            if session['2fa_type']=="totp":
-                #setup totp
-                secret=session['2fa_secret']
-                totp = pyotp.TOTP(secret)
-                
+    if datetime.datetime.now().isoformat()<session['2fa_expiry'] and session['attempts']>5:
+        # timeout, return to signup
+        flash("Exceeded 2fa verification period or exceeded 2fa attempts", "message")
+        return redirect(url_for("signup"))
+    
+    if request.method=="GET":
+        if session['2fa_type']=="totp":
+            #setup totp
+            secret=session['2fa_secret']
+            totp = pyotp.TOTP(secret)
+
+            if session['last_action']=='signup': # if signing up:
                 memory = BytesIO()
                 provisioning_uri = totp.provisioning_uri(name = session['email'], issuer_name="Kellett Programming Week")
                 img = qrcode.make(provisioning_uri)
@@ -235,93 +260,112 @@ def setup_2fa( ):
                 memory.seek(0)
                 base64_img = "data:image/png;base64," + \
                             base64.b64encode(memory.getvalue()).decode('ascii')
-                return render_template("otp_setup.html", code=secret.decode(), qr = base64_img, type="totp", signup=True)
+                return render_template("otp_setup.html", code=secret.decode(), qr = base64_img, type="totp", signup = True)
+            # if not signing up
+            return render_template("otp_setup.html", type="totp", signup = False)
 
-            elif session['2fa_type']=="email":
-                #setup 2fa via email
-                return render_template("otp_setup.html", email=session['email'], type="email")
+
+        elif session['2fa_type']=="email":
+            #setup 2fa via email, no need to check for signup explicitly because the message is the same.
+            return render_template("otp_setup.html", email=session['email'], type="email")
+        
+
+    # POST logic
+    elif request.method=="POST":
+        verified=False 
+        # assemble the code back together
+        code = request.form['otp1']+request.form['otp2']+request.form['otp3']+request.form['otp4']+request.form['otp5']+request.form['otp6']
+        if session['2fa_type']=="totp":
+            secret=session['2fa_secret']
+            totp = pyotp.TOTP(secret)
+            if not code == totp.now():
+                #incorrect code
+                session['attempts']+=1
+                flash("incorrect code entered","error")
+                return redirect(url_for("authenticate"))
             
+            if session['last_action']=='signup':
+                # give check if there already exists the account
+                if not execute_sql("""SELECT * FROM users WHERE user_email = :email""", {'email' : session['email']}).fetchone():
+                    uid=str(uuid.uuid4())
+                    execute_sql("""INSERT INTO users(uid, username, user_email, pwd_hash, secret, two_factor_auth_type, user_score, secret_salt) 
+                                VALUES(:uid, :username, :email, :pwd_hash, :secret, :2fa, :userscore, :secret_salt)""", {
+                                'uid': uid,
+                                'username': session['name'],
+                                'email': session['email'],
+                                'pwd_hash': session['hashed_password'],                                                                                                                                                                                                                                                                                                                                              
+                                'secret': session['encrypted_2fa_secret'],
+                                '2fa':"totp",
+                                'userscore': 0,
+                                "secret_salt":session['secret_salt']})
+            else: # if logging in:
+                user = execute_sql("""SELECT uid FROM users WHERE user_email=:email""", {'email':session['email']}).fetchone() # retrieve uid
+                uid=user.uid
+            # 2fa passed
+            verified=True
+
+        elif session['2fa_type']=="email":
+            if not code == session['2fa_code']:
+                #incorrect code
+                session['attempts']+=1
+                flash("incorrect code entered","error")
+                return redirect(url_for("authenticate"))
+            
+            if session['last_action']=='signup':
+                # give check if there already exists the account
+                if not execute_sql("""SELECT * FROM users WHERE user_email = :email""", {'email' : session['email']}).fetchone():
+                    uid=str(uuid.uuid4())
+                    execute_sql("""INSERT INTO users(uid, username, user_email, pwd_hash, two_factor_auth_type, user_score) 
+                                VALUES(:uid, :username, :email, :pwd_hash, :2fa, :userscore)""", {
+                                'uid': uid,
+                                'username': session['name'],
+                                'email': session['email'],
+                                'pwd_hash': session['hashed_password'],
+                                '2fa':"email",
+                                'userscore': 0})
+            else: # if logging in:
+                user = execute_sql("""SELECT uid FROM users WHERE user_email=:email""", {'email':session['email']}).fetchone() # retrieve uid
+
+            #2fa passed
+            verified=True
+
+    # if code is correct, begin to setup new cookie details
+    if verified:
+        # delete all user credidentials
+        session.clear()
+        session.permanent=True # make session permament session - creates persistent cookie
+        session.permanent_session_lifetime=datetime.timedelta(days=7) # set session to expire after 7 days and auto log out the user.
+        # setup logged in session information
+        print("test")
+        current_ua = request.headers.get('User-Agent')[:256] # limit length of user agent in order to prevent DOS attack by passing in abnormally long UA 
+        print("ua ok")
+        current_ip = request.remote_addr[:45] # 45 bits in order to ensure compatability with ipv6
+        print("ip ok")
+        hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                msg=current_ua.encode(), 
+                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+        print("hash ua ok")
+        hashed_ip = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                msg=current_ip.encode(), 
+                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+        print("hash ip ok")
+        session.update({
+            'uid' : uid, # user uid
+            'last_active' : datetime.datetime.now().isoformat(), # save the last active information
+            'verified' : True, # flag in order to highlight that the user is logged in. This should be safe because the cookie is signed and cannot be easily modified
+            # get the user agent from https headers -- includes information about browser, device etc. store securely by hashing.
+            'user_agent_hash' : hashed_ua,
+            # get user ip from https headers. store securely by hashing
+            'ip_hash' : hashed_ip,
+            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() # set session expiry date to be after 7 days
+        })
+        print("update ok")
+        # return to the home site
+        return redirect(url_for("index"))
+    
 
 
-        elif request.method=="POST":
-            # assemble the code back together
-            code = request.form['otp1']+request.form['otp2']+request.form['otp3']+request.form['otp4']+request.form['otp5']+request.form['otp6']
-            if session['2fa_type']=="totp":
-                secret=session['2fa_secret']
-                totp = pyotp.TOTP(secret)
-                if not code == totp.now():
-                    session['attempts']+=1
-                    return redirect(url_for("setup_2fa"))
-                execute_sql("""INSERT INTO users(uid, username, user_email, pwd_hash, secret, two_factor_auth_type, user_score) 
-                            VALUES(:uid, :username, :email, :pwd_hash, :secret, :2fa, :userscore)""", {
-                            'uid': 0 ,  # Should this be auto-incremented instead? TODO
-                            'username': session['name'],
-                            'email': session['email'],
-                            'pwd_hash': session['hashed_password'],                                                                                                                                                                                                                                                                                                                                              
-                            'secret': session['encrypted_2fa_secret'],
-                            '2fa':"totp",
-                            'userscore': 0})
-                # 2fa passed
-                #stop saving 2fa related details
-                session.pop('2fa_secret')
-                session.pop('totp')
-                session.pop('2fa_required')
-                session.pop('2fa_type')
-
-            elif session['2fa_type']=="email":
-                print(code,session['2fa_code'])
-                if not code == session['2fa_code']:
-                    session['attempts']+=1
-                    return redirect(url_for("setup_2fa"))
-                execute_sql("""INSERT INTO users(uid, username, user_email, pwd_hash, two_factor_auth_type, user_score) 
-                            VALUES(:uid, :username, :email, :pwd_hash, :2fa, :userscore)""", {
-                            'uid': 0 ,  # Should this be auto-incremented instead? TODO fix
-                            'username': session['name'],
-                            'email': session['email'],
-                            'pwd_hash': session['hashed_password'],
-                            '2fa':"email",
-                            'userscore': 0})
-                # code is correct
-                session.pop('2fa_code')
-                session.pop('2fa_required')
-                session.pop('2fa_type')
-    else:
-        # timeout, return to signup
-        flash("Exceeded 2fa verification period or exceeded 2fa attempts", "message")
-        return redirect(url_for("signup"))
-@app.route("/verify", methods=["GET","POST"])
-def verify():
-    print("hhhh")
-    # checks if there is a valid session
-    if 'uid' not in session:
-        return redirect(url_for("/" if not ('last_action' in session) else (session['last_action'])))       #redirect to home page or login or signup depending on last action
-    
-    # check for 2fa expiry
-    if datetime.datetime.now() >= session["2fa_expiry"]:
-        session.clear() # clear session cookies - prevents clutter and logs out user.
-        flash(f"Session expired, please {"login" if not (session["last_action"]=="signup") else ("sign up")} again", "error")
-        return redirect(url_for("login" if not (session["last_action"]=="signup") else ("signup")))
-    
-    if not "2fa_required" in session:
-        return redirect(url_for(session['last_action']))
-    
-
-    # 2fa process begins after all checks are paassed
-    if request.method == "POST": # user has entered 2fa code
-        if not pyotp.totp.verify(request.form['code']): # returns boolean
-            return redirect(url_for("verify_2fa"))     # incorrect code
-        else:
-            session['authenticated'] = True
-            session.pop('2fa_required', None)
-    
-    else:
-        if session['2fa_type']=='totp':
-            # parse in the secret into the html so that it can be scanned
-            pass
-        else:
-            pass
-    print(session)
-    return render_template("twofactorauth.html", auth_type=("pytotp" if session['2fa_type'] == 'totp' else "two_factor_auth"))                                                                                #TODO 2FA SITE TEMPLATE
+                                                                           #TODO 2FA SITE TEMPLATE
 
 @app.route("/debug")
 def debug():
