@@ -1,21 +1,20 @@
-<!DOCTYPE html>
-<html style="background-color: #1B1B1B;">
-    <head>
-        <title>Kellett Programming | Home</title>
-        <link rel="icon" type="image/png" href="kellett_logo.png"/>
-        <link rel="icon" type="image/png" href="kellett_logo_light.png" media="(prefers-color-scheme:dark)"/>
-        <link rel="icon" type="image/png" href="kellett_logo_dark.png" media="(prefers-color-scheme:light)"/>
-        <link rel="stylesheet" href="static/style.css">
-    </head>
-    
-    <body>
-        <div id="top_bar">
-            > Kellett Programming Week
-        </div>
-        <div style = "width: 75%; height: 30%" id="box">
-            <div id = "line_num">
-                01 | <span id="class_text">import login</span>
-            </div>
-        </div>
-</html>
-<!-- unfinished -->
+<!-- template -->
+{% extends "base.html" %}
+{% block title %}Home
+{% endblock %}
+<!-- Top bar text -->
+{% block top_bar %}
+{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% endblock %}
+
+{% block body %}
+<!--insert body-->
+<div style = "width: 75%; height: 30%" id="box">
+    <div id = "line_num">
+        01 | <span id="class_text">import login</span>
+    </div>
+</div>
+{% endblock %}

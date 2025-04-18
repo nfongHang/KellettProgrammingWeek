@@ -58,7 +58,7 @@
         02 | <span id="commenttext"># To complete your Two Factor Authentication, </span>
     </div>
     <div id="line_num">
-        03 | <span id="commenttext"># please look through your email {email} for the 6 digit code. </span>
+        03 | <span id="commenttext"># please look through your email <span id="vartext">{{email}}</span> for the 6 digit code. </span>
     </div>
     <div id="line_num">
         04 | <span id="commenttext"># if you are unable to find it, try checking through your spam and junk mail.</span>
@@ -68,6 +68,13 @@
     </div>
     <div id="line_num">
         08 | <span id="commenttext"># Once you have found it, please enter in the OTP code that shows up.</span>
+    </div>
+    <div id="line_num">
+        09 | <span id="commenttext"></span>
+    </div>
+    <div id="line_num">
+        10 | <span id="commenttext"># Cant find the message?
+            <form style="display : inline" id="resend" method="post"><input type="submit" name="resend_button" id = "link_button" value="Wait for 30 more seconds to resend" disabled/></form></span>
     </div>
     <br>
     {% endif %}

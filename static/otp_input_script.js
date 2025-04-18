@@ -45,6 +45,25 @@ function OTPInput() {
     };
   }
 
+function resend_countdown() {
+  
+  const button = document.getElementById("link_button")
+  button.disabled = true; 
+  
+  var countdown = 30;
+  var x = setInterval(function(){
+    if (countdown>0){
+      countdown = countdown - 1
+      button.value = "Wait for "+countdown+" more seconds to resend"}
+    else{
+      button.disabled = false;
+      button.value = "click here to resend!" 
+      clearInterval(x)
+    };
+  }, 1000);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     OTPInput();
+    resend_countdown();
 });
