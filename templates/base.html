@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html style="background-color: #1B1B1B;">
     <head>
+        <script src="static/jquery-3.7.1.js"></script>
         {% block head %}
         <title>Kellett Programming | {%block title %}{% endblock %}</title>
         <link rel="icon" type="image/png" href="static/kellett_logo.png"/>
@@ -11,10 +12,49 @@
         {% endblock %}
     </head>
     <body>
-        <div id="top_bar">
-            C:\kellett_programming_week\{% block top_bar %}{% endblock %}
+        <div class="top_bar">
+            C:\<a href="/"><span class="top_bar" id="url1">kellett_programming_week</span></a><a id="2"></a><span class="top_bar" id="url2">{% block top_bar %}{% endblock %}</span><a id="3"></a><span class="top_bar" id="url3">{% block top_bar2 %}{% endblock %}</span>
+            <form method="post" action="#">
+            {% if verified %}
+                <div>{{ session["name"] }} <!-- TODO account button thing, then also the account html lmao -->
+            {% else %}
+                <button type="submit" id="link_button" name="login_or_out" style="float: right; margin-top:1.25vh; margin-right: 1vh;"> Sign in / Log in
+            {% endif %}
+            </button>
+            </form>
         </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert_class" hidden>
+                    <div class="alert alert-info" role = "alert" id="{{ messages[-1][0] }}">
+                        * {{ messages[-1][1] }} <button class="close" id="alert_close" hidden>×</button>
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
         {% block body %}{% endblock %}
+        
+        
+        <script>
+            if ($("#alert_close").length){
+                $(".alert_class").slideDown();
+                $("#alert_close").slideDown();
+                $("#alert_close").click(function(){$(".alert_class").fadeOut(150, function(){$(".alert_class").css({"visibility":"hidden",display:"block"}).slideUp();})});
+                setTimeout(function(){$(".alert_class").fadeOut(150, function(){$(".alert_class").css({"visibility":"hidden",display:"block"}).slideUp();})}, 75*100);
+            };
+            if ($("#url2").text().length>1){
+                $("#2").text("\\");
+                $("#url2").click(function(e){
+                    window.location.href="/"+$("#url2").text();
+                });
+            };
+            if ($("#url3").text().length>1){
+                $("#3").text("\\");
+                $("#url3").click(function(e){
+                    window.location.href="/"+$("#url3").text();
+                })
+            };
+        </script>
     </body>
 </html>
 

@@ -27,6 +27,7 @@ import qrcode
 from flask_mail import Mail, Message
 import creds
 import uuid
+
 # Creating a Flask instance
 app = Flask(__name__)
 # Add the databases
@@ -88,18 +89,68 @@ def send_2fa_email(address, code):
         print(f"WARNING | Error sending email to {address}:\nError: {e}")
         return False
 
-@app.route("/")
+
+def checkSessionExpired(expiry_time):
+    if datetime.datetime.now().isoformat()>expiry_time:
+        return True
+    return False
+
+@app.route("/", methods = ["POST","GET"])
 def index():
+    if request.method=="POST":
+        if "login_or_out" in request.form:
+            if not "verified" in session:
+                # signin
+                return redirect(url_for("signup"))
+            #logging out
+            session.clear()
+            flash("Sucessfully logged out.","message")
+    # debugging
     print(session)
-    return render_template("index.html")
+    # checking if valid session right now:
+    verified=False
+    if 'verified' in session:
+        # run test
+        verified = True
+
+        # if this user has suddenly gotten online again after 1 hour of inactivity:
+        if datetime.datetime.now().isoformat()>session["last_active"]+datetime.timedelta(hours=1):
+            #regenerating current hashed UA and IP
+            current_hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                    msg=request.headers.get('User-Agent')[:256].encode(), 
+                                    digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+            current_hashed_ip = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                    msg=request.remote_addr[:45].encode(), 
+                                    digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+            
+            # TODO: MAYBE MAKE THE IP AND UA HASH INTO ONE BLOB?
+
+            if not(current_hashed_ip == session["ip_hash"]) and not(current_hashed_ua == session["user_agent_hash"]):
+                #log out user
+                session.clear()
+                flash("You have been logged out: Session expired / Invalid session. Please login again.", "error")
+                return redirect(url_for("login"))
+
+
+        if checkSessionExpired(session['expires_at']):
+            #log out user
+            session.clear()
+            flash("You have been logged out: Session expired / Invalid session. Please login again.", "error")
+            return redirect(url_for("login"))
+    #update session last active time
+    session["last_active"]=datetime.datetime.now().isoformat()
+    return render_template("index.html", verified=verified)
 
 @app.route("/login", methods = ["POST", "GET"])
 def login():
-    
+    if 'verified' in session:
+        return redirect(url_for("index"))
     print(request.method)
     if request.method == "GET":
         return render_template("login.html") # initial login state
     elif request.method == "POST":
+        if "login_or_out" in request.form:
+            return redirect(url_for("signup"))
         # retrieve form inputs
         email = request.form["email"]
         password = request.form["password"].encode()
@@ -125,7 +176,7 @@ def login():
             return redirect(url_for("login"))
         
         # if all checks passed, create session information
-        
+        session.clear()
         session['uid'] = user.uid                                                                       # general user information.
         session['email'] = email                                                                        #
         session['last_action'] = "login"                                                                # record information of what the last action the user did
@@ -156,6 +207,7 @@ def login():
                     session['2fa_type'] = "totp"
             case "email":
                 # generate 6 digit code
+                session['attempts'] = 0 
                 session['2fa_code'], session['2fa_expiry']=generate_email_otp() 
                 session['2fa_type'] = "email"
                 if not send_2fa_email(session['email'], session['2fa_code']): # if code unsuccessfully sent:
@@ -165,7 +217,11 @@ def login():
 
 @app.route("/signup", methods = ["POST", "GET"])
 def signup():
+    if 'verified' in session:
+        return redirect(url_for("index"))
     if request.method == "POST":
+        if "login_or_out" in request.form:
+            return redirect(url_for("login"))
         email = request.form["email"]
         password = request.form["password"].encode()
         name = request.form["username"]
@@ -188,6 +244,7 @@ def signup():
         # hashing the password using bcrypt    
         hashed_password = bcrypt.hashpw(password, salt)
                                                                                                          # general user information. UID should only be generated when the account is confirmed to be created.
+        session.clear()
         session['email'] = email
         session['last_action'] = "signup" 
         session['2fa_required'] = False 
@@ -225,7 +282,7 @@ def signup():
                     flash("Email unable to be sent due to unexpected error.", "error")
 
             else:
-                flash("Invalid 2fa type", "error")
+                flash("Invalid 2fa type selected.", "error")
                 return redirect(url_for("signup"))
         
         if session['2fa_required'] == False:
@@ -240,10 +297,13 @@ def signup():
 
 @app.route("/authenticate", methods=["GET","POST"])
 def authenticate():
+    if 'verified' in session:
+        return redirect(url_for("index"))
     #check for expiry
-    if datetime.datetime.now().isoformat()<session['2fa_expiry'] and session['attempts']>5:
+    if datetime.datetime.now().isoformat()>session['2fa_expiry'] or session['attempts']>5:
         # timeout, return to signup
-        flash("Exceeded 2fa verification period or exceeded 2fa attempts", "message")
+        print(session)
+        flash("Exceeded 2fa verification period or exceeded 2fa attempts.", "error")
         return redirect(url_for("signup"))
     
     if request.method=="GET":
@@ -272,6 +332,16 @@ def authenticate():
 
     # POST logic
     elif request.method=="POST":
+        if 'resend_button' in request.form and session['2fa_type']=='email':
+            # email resend
+            # regenerate new code
+            # generate 6 digit code
+            session['attempts']+=0.5
+            session['2fa_code']=generate_email_otp()[0]
+            if not send_2fa_email(session['email'], session['2fa_code']): # if code unsuccessfully sent:
+                # render site
+                flash("Email unable to be sent due to unexpected error.", "error")
+            return render_template("otp_setup.html", email=session['email'], type="email")
         verified=False 
         # assemble the code back together
         code = request.form['otp1']+request.form['otp2']+request.form['otp3']+request.form['otp4']+request.form['otp5']+request.form['otp6']
@@ -281,13 +351,14 @@ def authenticate():
             if not code == totp.now():
                 #incorrect code
                 session['attempts']+=1
-                flash("incorrect code entered","error")
+                flash("incorrect code entered. Try again.","error")
                 return redirect(url_for("authenticate"))
             
             if session['last_action']=='signup':
                 # give check if there already exists the account
                 if not execute_sql("""SELECT * FROM users WHERE user_email = :email""", {'email' : session['email']}).fetchone():
                     uid=str(uuid.uuid4())
+                    name=session["name"]
                     execute_sql("""INSERT INTO users(uid, username, user_email, pwd_hash, secret, two_factor_auth_type, user_score, secret_salt) 
                                 VALUES(:uid, :username, :email, :pwd_hash, :secret, :2fa, :userscore, :secret_salt)""", {
                                 'uid': uid,
@@ -299,8 +370,9 @@ def authenticate():
                                 'userscore': 0,
                                 "secret_salt":session['secret_salt']})
             else: # if logging in:
-                user = execute_sql("""SELECT uid FROM users WHERE user_email=:email""", {'email':session['email']}).fetchone() # retrieve uid
+                user = execute_sql("""SELECT uid, username FROM users WHERE user_email=:email""", {'email':session['email']}).fetchone() # retrieve uid
                 uid=user.uid
+                name=user.username
             # 2fa passed
             verified=True
 
@@ -308,13 +380,14 @@ def authenticate():
             if not code == session['2fa_code']:
                 #incorrect code
                 session['attempts']+=1
-                flash("incorrect code entered","error")
+                flash("incorrect code entered. Try again","error")
                 return redirect(url_for("authenticate"))
             
             if session['last_action']=='signup':
                 # give check if there already exists the account
                 if not execute_sql("""SELECT * FROM users WHERE user_email = :email""", {'email' : session['email']}).fetchone():
                     uid=str(uuid.uuid4())
+                    name=session["name"]
                     execute_sql("""INSERT INTO users(uid, username, user_email, pwd_hash, two_factor_auth_type, user_score) 
                                 VALUES(:uid, :username, :email, :pwd_hash, :2fa, :userscore)""", {
                                 'uid': uid,
@@ -324,7 +397,9 @@ def authenticate():
                                 '2fa':"email",
                                 'userscore': 0})
             else: # if logging in:
-                user = execute_sql("""SELECT uid FROM users WHERE user_email=:email""", {'email':session['email']}).fetchone() # retrieve uid
+                user = execute_sql("""SELECT uid, username FROM users WHERE user_email=:email""", {'email':session['email']}).fetchone() # retrieve uid
+                uid=user.uid
+                name=user.username
 
             #2fa passed
             verified=True
@@ -357,7 +432,8 @@ def authenticate():
             'user_agent_hash' : hashed_ua,
             # get user ip from https headers. store securely by hashing
             'ip_hash' : hashed_ip,
-            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=7)).isoformat() # set session expiry date to be after 7 days
+            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=14)).isoformat(), # set session expiry date to be after 7 days
+            'name' : name
         })
         print("update ok")
         # return to the home site
