@@ -1,5 +1,6 @@
 # using flask to display site
 from flask import Flask, render_template, redirect, url_for, request, session, flash
+from flask_wtf.csrf import CSRFProtect
 #interfacing with mysql
 # hashlib for hashing password - keep all stored passwords hashed and secure when in database
 import bcrypt
@@ -21,27 +22,46 @@ from cryptography.hazmat.backends import default_backend
 import secrets
 import hashlib
 import hmac
-
 from io import BytesIO
 import qrcode
 from flask_mail import Mail, Message
 import creds
 import uuid
+from authlib.integrations.flask_client import OAuth
+#single sign on
+import workos
 
 # Creating a Flask instance
 app = Flask(__name__)
 # Add the databases
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://root:{creds.sql_pwd}@localhost/main"
 app.config['SECRET_KEY'] = creds.server_secret_key
+csrf = CSRFProtect(app)
+
+# SSO
+oauth = OAuth(app)
+# defining the different allowed sso types
+oauth.register(
+    name='github',
+    client_id=creds.github_client_id,
+    client_secret=creds.github_client_secret,
+    access_token_url='https://github.com/login/oauth/access_token',
+    access_token_params=None,
+    authorize_url='https://github.com/login/oauth/authorize',
+    authorize_params=None,
+    allow_signup=True,
+    api_base_url='https://api.github.com/',
+    client_kwargs={'scope': 'user:email'},
+)
+
 
 # Create engine
 engine = create_engine(f"mysql+pymysql://root:{creds.sql_pwd}@localhost/main")
-
 # Initiating email service
 app.config['MAIL_SERVER'] = "smtp.gmail.com"
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = "noreply.kellettprogramming@gmail.com"
-app.config['MAIL_DEFAULT_SENDER'] = "noreply.kellettprogramming@gmail.com"
+app.config['MAIL_USERNAME'] = creds.email
+app.config['MAIL_DEFAULT_SENDER'] = creds.email
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_PASSWORD'] = creds.mail_pwd
@@ -95,18 +115,7 @@ def checkSessionExpired(expiry_time):
         return True
     return False
 
-@app.route("/", methods = ["POST","GET"])
-def index():
-    if request.method=="POST":
-        if "login_or_out" in request.form:
-            if not "verified" in session:
-                # signin
-                return redirect(url_for("signup"))
-            #logging out
-            session.clear()
-            flash("Sucessfully logged out.","message")
-    # debugging
-    print(session)
+def check_valid_session(session):
     # checking if valid session right now:
     verified=False
     if 'verified' in session:
@@ -114,7 +123,7 @@ def index():
         verified = True
 
         # if this user has suddenly gotten online again after 1 hour of inactivity:
-        if datetime.datetime.now().isoformat()>session["last_active"]+datetime.timedelta(hours=1):
+        if datetime.datetime.now()>datetime.datetime.fromisoformat(session["last_active"])+datetime.timedelta(hours=1):
             #regenerating current hashed UA and IP
             current_hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
                                     msg=request.headers.get('User-Agent')[:256].encode(), 
@@ -129,28 +138,96 @@ def index():
                 #log out user
                 session.clear()
                 flash("You have been logged out: Session expired / Invalid session. Please login again.", "error")
-                return redirect(url_for("login"))
+                return verified
 
 
         if checkSessionExpired(session['expires_at']):
             #log out user
             session.clear()
             flash("You have been logged out: Session expired / Invalid session. Please login again.", "error")
-            return redirect(url_for("login"))
+            return verified
     #update session last active time
-    session["last_active"]=datetime.datetime.now().isoformat()
-    return render_template("index.html", verified=verified)
+        session["last_active"]=datetime.datetime.now().isoformat()
+    return verified
+
+@app.route("/error/<error_id>", methods = ["GET"])
+def error(error_id):
+    return render_template("error.html", error = error_id)
+
+@app.route("/", methods = ["POST","GET"])
+def index():
+    #handle top right signup/login OR account button
+    if request.method=="POST":
+        if "login_or_out" in request.form:
+            if not "verified" in session:
+                # signin
+                return redirect(url_for("signup"))
+            #logging out
+            session.clear()
+            flash("Sucessfully logged out.","message")
+        elif "account" in request.form and "verified" in session:
+            return redirect(url_for("account", uid=session["uid"]))
+    return render_template("index.html", verified=check_valid_session(session))
+
+
+@app.route("/account", methods = ["POST","GET"])
+def redirect_account():
+    if 'uid' in session:
+        return redirect(url_for("account", uid=session['uid']))
+    else:
+        return redirect(url_for("signup"))
+    
+@app.route("/account/<uid>", methods = ["POST","GET"])
+def account(uid):
+    uid=uid.replace("%20"," ")
+    #check for case of username entered instead
+    #convert to uid
+    if len(uid)!=36 or execute_sql("SELECT username FROM users WHERE uid=:uid",{"uid":uid}).fetchone()==None:
+        #try and find uid based on username
+        uid=execute_sql("SELECT uid FROM users WHERE username=:username",{"username":uid}).fetchone()[0]
+    if uid==None:
+        return redirect(url_for("error"),error_id=404)
+    # attempt to fetch user profile picture
+    image=execute_sql("SELECT images FROM user_to_profile_pictures WHERE uid=:uid", {'uid':uid}).fetchone()
+    if image==None:
+        pass # TODO - SETS IMAGE TO DEFAULT ONE
+    else:
+        image = "data:image/png;base64," + base64.b64encode(image).decode('utf-8') # encodes bytes into image that can be displayed
+    name=execute_sql("SELECT username FROM users WHERE uid=:uid",{"uid":uid}).fetchone()[0]
+
+    #basic button logic
+    if request.method=="POST":
+        if "login_or_out" in request.form:
+            if not "verified" in session:
+                # signin
+                return redirect(url_for("signup"))
+            #logging out
+            session.clear()
+            flash("Sucessfully logged out.","message")
+        elif "account" in request.form and "verified" in session:
+            return redirect(url_for("account", uid=session["uid"]))
+        # check if this is the user's own account
+
+
+    return render_template("account.html", verified=check_valid_session(session), uid=uid, image=image, acc_name=name)
 
 @app.route("/login", methods = ["POST", "GET"])
 def login():
     if 'verified' in session:
         return redirect(url_for("index"))
-    print(request.method)
     if request.method == "GET":
         return render_template("login.html") # initial login state
     elif request.method == "POST":
         if "login_or_out" in request.form:
             return redirect(url_for("signup"))
+        
+        # manage single sign on
+        if "github_sso" in request.form:
+            session.clear()
+            session["sso"] = True
+            session["sso_type"] = "github"
+            return github_login()
+        
         # retrieve form inputs
         email = request.form["email"]
         password = request.form["password"].encode()
@@ -215,18 +292,43 @@ def login():
                     flash("Email unable to be sent due to unexpected error.", "error")
         return redirect(url_for("authenticate"))
 
+def github_login():
+    github = oauth.create_client('github')
+    redirect_uri = "http://127.0.0.1:5000/authenticate"
+    session["sso_type"]="github"
+    return github.authorize_redirect(redirect_uri)
+
+def github_authorize(request):
+    """ Creates profile dict and returns it from github SSO """
+    token = oauth.github.authorize_access_token()
+    print(token.get('scope'))
+    resp = oauth.github.get('user', token=token)
+    resp.raise_for_status()
+    profile = resp.json()
+    resp = oauth.github.get('user/emails', token=token)
+    resp.raise_for_status()
+    email = resp.json()
+    return profile, email
+
 @app.route("/signup", methods = ["POST", "GET"])
 def signup():
     if 'verified' in session:
         return redirect(url_for("index"))
     if request.method == "POST":
+        if "github_sso" in request.form:
+            session.clear()
+            session["sso"] = True
+            session["sso_type"] = "github"
+            return github_login()
         if "login_or_out" in request.form:
             return redirect(url_for("login"))
+
+
         email = request.form["email"]
-        password = request.form["password"].encode()
+        password = request.form["password"]
         name = request.form["username"]
         if request.form["password"]!=request.form["retype_password"]:
-            flash("Not the same password", "error")
+            flash("Passwords entered are not the same.", "error")
             return redirect(url_for("signup"))
 
         # validate email format. 
@@ -242,7 +344,7 @@ def signup():
         # generating a new salt
         salt = bcrypt.gensalt()
         # hashing the password using bcrypt    
-        hashed_password = bcrypt.hashpw(password, salt)
+        hashed_password = bcrypt.hashpw(password.encode(), salt)
                                                                                                          # general user information. UID should only be generated when the account is confirmed to be created.
         session.clear()
         session['email'] = email
@@ -267,7 +369,7 @@ def signup():
                 secret=generate_2fa_secret() 
                 session['2fa_secret'] = secret # gets deleted later
                 # encrypt 2fa secret here in order to keep the password always within signup page and isnt stored afterwards.
-                key=base64.urlsafe_b64encode(kdf.derive(password)) # key derived using password
+                key=base64.urlsafe_b64encode(kdf.derive(password.encode())) # key derived using password
                 session['encrypted_2fa_secret'] = Fernet(key).encrypt(secret) # encrypted using key generated above
                 session['2fa_expiry'] = (datetime.datetime.now() + datetime.timedelta(minutes=5)).isoformat() # set expiry
                 session['2fa_type'] = "totp"
@@ -292,13 +394,74 @@ def signup():
             return redirect(url_for("authenticate"))
         
     else:
-        print('a')
         return render_template("signup.html")
+
+def login_procedure(uid, name):
+    # delete all user credidentials
+        session.clear()
+        session.permanent=True # make session permament session - creates persistent cookie
+        session.permanent_session_lifetime=datetime.timedelta(days=7) # set session to expire after 7 days and auto log out the user.
+        # setup logged in session information
+        current_ua = request.headers.get('User-Agent')[:256] # limit length of user agent in order to prevent DOS attack by passing in abnormally long UA 
+        current_ip = request.remote_addr[:45] # 45 bits in order to ensure compatability with ipv6
+        hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                msg=current_ua.encode(), 
+                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+        hashed_ip = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                msg=current_ip.encode(), 
+                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+        session.update({
+            'uid' : uid, # user uid
+            'last_active' : datetime.datetime.now().isoformat(), # save the last active information
+            'verified' : True, # flag in order to highlight that the user is logged in. This should be safe because the cookie is signed and cannot be easily modified
+            # get the user agent from https headers -- includes information about browser, device etc. store securely by hashing.
+            'user_agent_hash' : hashed_ua,
+            # get user ip from https headers. store securely by hashing
+            'ip_hash' : hashed_ip,
+            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=14)).isoformat(), # set session expiry date to be after 7 days
+            'name' : name
+        })
+        print("update ok")
+        # return to the home site
+        return redirect(url_for("index"))
 
 @app.route("/authenticate", methods=["GET","POST"])
 def authenticate():
-    if 'verified' in session:
-        return redirect(url_for("index"))
+    #manage sso
+    verified=False
+    if 'sso' in session:
+        # TODO implement test for which type of sso
+        sso_type=session["sso_type"]
+        match sso_type:
+            case "github":
+                profile, email = github_authorize(request)
+                email=email[0]
+        # check if email exists in database
+        if user_details:=execute_sql("SELECT * FROM users WHERE user_email=:email",{"email":email['email']}).fetchone():
+            #check if SSO information already exists. If not, add it.
+            user_details=user_details._mapping
+            if user_details[sso_type]==None:
+                execute_sql(f"UPDATE users SET {sso_type}=True WHERE user_email=:email", {"email":email['email']})
+            #login user
+            uid=user_details.uid
+            name=user_details.username
+            # 2fa passed
+            verified=True
+        else:
+            uid=str(uuid.uuid4())
+            name=profile['login']
+            execute_sql(f"""INSERT INTO users(uid, username, user_email, user_score, {sso_type}) 
+                        VALUES(:uid, :username, :email, :pwd_hash, :secret, :2fa, :userscore, :sso)""", {
+                        'uid': uid,
+                        'username': name,
+                        'email': email["email"],
+                        'userscore': 0,
+                        'sso':True
+                        })
+            verified=True
+
+    if 'verified' in session or verified:
+        return login_procedure(uid,name)
     #check for expiry
     if datetime.datetime.now().isoformat()>session['2fa_expiry'] or session['attempts']>5:
         # timeout, return to signup
@@ -406,38 +569,7 @@ def authenticate():
 
     # if code is correct, begin to setup new cookie details
     if verified:
-        # delete all user credidentials
-        session.clear()
-        session.permanent=True # make session permament session - creates persistent cookie
-        session.permanent_session_lifetime=datetime.timedelta(days=7) # set session to expire after 7 days and auto log out the user.
-        # setup logged in session information
-        print("test")
-        current_ua = request.headers.get('User-Agent')[:256] # limit length of user agent in order to prevent DOS attack by passing in abnormally long UA 
-        print("ua ok")
-        current_ip = request.remote_addr[:45] # 45 bits in order to ensure compatability with ipv6
-        print("ip ok")
-        hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
-                                msg=current_ua.encode(), 
-                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
-        print("hash ua ok")
-        hashed_ip = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
-                                msg=current_ip.encode(), 
-                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
-        print("hash ip ok")
-        session.update({
-            'uid' : uid, # user uid
-            'last_active' : datetime.datetime.now().isoformat(), # save the last active information
-            'verified' : True, # flag in order to highlight that the user is logged in. This should be safe because the cookie is signed and cannot be easily modified
-            # get the user agent from https headers -- includes information about browser, device etc. store securely by hashing.
-            'user_agent_hash' : hashed_ua,
-            # get user ip from https headers. store securely by hashing
-            'ip_hash' : hashed_ip,
-            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=14)).isoformat(), # set session expiry date to be after 7 days
-            'name' : name
-        })
-        print("update ok")
-        # return to the home site
-        return redirect(url_for("index"))
+        return login_procedure(uid, name)
     
 
 

@@ -1,19 +1,22 @@
 <!-- template -->
 {% extends "base.html" %}
-{% block title %}
-[insert page title here]
+{% block title %}Account | {{ acc_name }}
 {% endblock %}
-<!-- Top bar text -->
-{% block top_bar %}
-[insert top bar text here]
+{% block top_bar %}account
 {% endblock %}
-
 {% block head %}
 {{ super() }}
 {% endblock %}
 
 {% block body %}
 <!--insert body-->
-
-
+<div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*8" class="box">
+    <img src="{{ myImage | safe }}">
+    <div class="stringtext">{{ acc_name }}</div>
+    {% if verified %}
+    <form method="post" action="#">
+    <button type="submit" id="link_button" name="login_or_out" style="float: right; margin-top:1.25vh; margin-right: 1vh;">Log Out?<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/></button>
+    </form>
+    {% endif %}
+</div>
 {% endblock %}

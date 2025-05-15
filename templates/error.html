@@ -1,0 +1,26 @@
+<!-- template -->
+{% extends "base.html" %}
+{% block title %}
+Error : {{error_id}}
+{% endblock %}
+<!-- Top bar text -->
+{% block top_bar %}
+error
+{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% endblock %}
+
+{% block body %}
+<!--insert body-->
+<div class="box" style = "width: 75vw; height: calc(0.45rem + 0.9vw)*10" >
+    <div class = "line_num">
+        01 | <span class="class_text">An error has occured: Error ID {{ error_id }}</span>
+    </div>
+    <div class = "line_num">
+        02 | <span class="class_text">If you didn't intentionally encounter this page, please contact fngai@kellettschool.com</span>
+    </div>
+</div>
+
+{% endblock %}
