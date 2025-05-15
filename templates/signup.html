@@ -12,96 +12,122 @@
 
 {% block body %}
 <!--insert body-->
-<div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*10" id="box">
+<div class="box" style = "width: 75vw; height: calc(0.45rem + 0.9vw)*10" >
 
-    <div id="line_num">
-        01 | <span id="class_text">import sign_up</span>
+    <div class="line_num">
+        01 | <span class="class_text">import sign_up</span>
     </div>
 
-    <div id="line_num">
-        02 | <span id="commenttext"># please enter username, email and password</span>
+    <div class="line_num">
+        02 | <span class="commenttext"># please enter username, email and password</span>
     </div>
     <form method="post">
     <!-- input username -->
-    <div id="line_num">
+    <div class="line_num">
         03 | 
-        <span id="vartext">username</span> 
-        <span id="normaltext">=</span>
-        <span id="inputtext">input(</span><!--
-     --><span id="stringtext">"</span><!--
-     --><input type="text" style="width: 9.5ch" name="username" onkeypress="if (parseInt(this.style.width)<=45){this.style.width = (this.value.length + 2)+'ch'}; 
-                                                                  if(parseInt(this.value.length)<=45){this.style.width=(this.value.length+2)+'ch'};"
-                                                                  id = "text_input"  placeholder=your_name
+        <span class="vartext">username</span> 
+        <span class="normaltext">=</span>
+        <span class="inputtext">input(</span><!--
+     --><span class="stringtext">"</span><!--
+     --><input type="text" style="width: 9.5ch" name="username" oninput="this.style.width=update_length(this.value.length, this.style.width, 8.5)"
+                                                                  class = "text_input"  placeholder=your_name class="username"
                                                                   ><!--
-     --><span id="stringtext">"</span><!--
-     --><span id="inputtext">)</span> 
+     --><span class="stringtext">"</span><!--
+     --><span class="inputtext">)</span> 
     </div>
     
     <!-- email login box -->
-    <div id="line_num">
+    <div class="line_num">
         04 | 
-        <span id="vartext">email</span> 
-        <span id="normaltext">=</span>
-        <span id="inputtext">input(</span><!--
-     --><span id="stringtext">"</span><!--
-     --><input type="email" style="width: 14.5ch" name="email" onkeypress="if (parseInt(this.style.width)<=45){this.style.width = (this.value.length + 2)+'ch'}; 
-                                                                   if(parseInt(this.value.length)<=45){this.style.width=(this.value.length+2)+'ch'};" 
-                                                                   id = "text_input"  placeholder=name@email.com
+        <span class="vartext">email</span> 
+        <span class="normaltext">=</span>
+        <span class="inputtext">input(</span><!--
+     --><span class="stringtext">"</span><!--
+     --><input type="email" style="width: 14.5ch" name="email" oninput="this.style.width=update_length(this.value.length, this.style.width, 13.5)"
+                                                                class = "text_input"  placeholder=name@email.com class="email"
                                                                    ><!--
-     --><span id="stringtext">"</span><!--
-     --><span id="inputtext">)</span> 
+     --><span class="stringtext">"</span><!--
+     --><span class="inputtext">)</span> 
     </div>
     
     <!-- input password -->
-    <div id="line_num">
+    <div class="line_num">
         05 | 
-        <span id="vartext">password</span> 
-        <span id="normaltext">=</span>
-        <span id="inputtext">input(</span><!--
-     --><span id="stringtext">"</span><!--
-     --><input type="password" style="width: 8.5ch" name="password" onkeypress="if (parseInt(this.style.width)<=45){this.style.width = (this.value.length + 2)+'ch'}; 
-                                                                if(parseInt(this.value.length)<=45){this.style.width=(this.value.length+2)+'ch'};" 
-                                                                id = "text_input"  placeholder=password
+        <span class="vartext">password</span> 
+        <span class="normaltext">=</span>
+        <span class="inputtext">input(</span><!--
+     --><span class="stringtext">"</span><!--
+     --><input type="password" style="width: 8.5ch" name="password" oninput="this.style.width=update_length(this.value.length, this.style.width, 7.5)"
+                                                                class = "text_input"  placeholder=password class="password"
                                                                 onpaste="return false;" ondrop="return false;" autocomplete="off"
                                                                 ><!--
-     --><span id="stringtext">"</span><!--
-     --><span id="inputtext">)</span>
+     --><span class="stringtext">"</span><!--
+     --><span class="inputtext">)</span>
     </div>
-    <div id="line_num">
+    <div class="line_num">
         06 | 
-        <span id="vartext">retype_password</span> 
-        <span id="normaltext">=</span>
-        <span id="inputtext">input(</span><!--
-     --><span id="stringtext">"</span><!--
-     --><input type="password" style="width: 8.5ch" onkeypress="if (parseInt(this.style.width)<=45){this.style.width = (this.value.length + 2)+'ch'}; 
-                                                                if(parseInt(this.value.length)<=45){this.style.width=(this.value.length+2)+'ch'};" 
-                                                                id = "text_input"  placeholder=password
+        <span class="vartext">retype_password</span> 
+        <span class="normaltext">=</span>
+        <span class="inputtext">input(</span><!--
+     --><span class="stringtext">"</span><!--
+     --><input type="password" style="width: 8.5ch" class = "text_input"  oninput="this.style.width=update_length(this.value.length, this.style.width, 7.5)"
+                                                                placeholder=password class="retype_password"
                                                                 onpaste="return false;" ondrop="return false;" autocomplete="off"
                                                                 name="retype_password"><!--
-     --><span id="stringtext">"</span><!--
-     --><span id="inputtext">)</span>
+     --><span class="stringtext">"</span><!--
+     --><span class="inputtext">)</span>
     </div>
-    <div id="line_num">
-        07 | <span id="commenttext"># choose method of 2fa:</span>
-        <input type = "radio" id="totp" name="2fa_type" value="totp">
-        <label for="totp" id="vartext">TOTP(Google Authenticator)</span>
-        <input type = "radio" id="email" name="2fa_type" value="email">
-        <label for="email" id="vartext">Email 2FA</span> 
+    <div class="line_num">
+        07 | <span class="commenttext"># choose method of 2fa:</span>
+        <input type = "radio" class="totp" name="2fa_type" value="totp">
+        <label for="totp" class="vartext">TOTP(Google Authenticator / Authy)</span>
+        <input type = "radio" class="email" name="2fa_type" value="email">
+        <label for="email" class="vartext">Email 2FA</span> 
     </div>
-    <div id="line_num">
-        08 | <input type="submit" id = "button" value="sign_up()"><br>
+    <div class="line_num">
+        08 | <input type="submit" class = "button" value="sign_up()"><br>
     </div>
-    
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     </form>
-    <div id="line_num">
-        09 | <div id="commenttext"></div>
+    <div class="line_num">
+        09 | <div class="commenttext"></div>
     </div>
-    <div id="line_num">
-        10 | <span id="commenttext"># login:</span> 
+    <div class="line_num">
+        10 | <span class="commenttext"># alternatively, you can use your Github/Google/Microsoft account to sign up:</span>
     </div>
-    <div id="line_num">
-        11 | <span id="commenttext"># already got an account? </span><!--
+    <form method="post">
+    <div class="line_num">
+        11 | <button type="submit" id="link_button" name="github_sso">github</button>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    </div>
+    </form>
+    <div class="line_num">
+        12 | <span class="commenttext"># login:</span> 
+    </div>
+    <div class="line_num">
+        13 | <span class="commenttext"># already got an account? </span><!--
      --><a><form style="display : inline" action="login"><input type="submit" id = "link_button" value = "login here!" /></form></a>
     </div><br>
+    <script>
+        function update_length(length, width, original_length){
+            var updated_width = (original_length+0.5)+"ch";
+            if ((parseInt(length)>=original_length)&&((parseInt(width)<=45)||parseInt(length)<=45))
+                {updated_width = (length + 0.5)+'ch'};
+            return updated_width;
+        };
+        $(document).on('keypress',function(e) {
+            if (e.which==13){
+                e.preventDefault();
+                if ($("#username").is(":focus")){
+                    $("#email").focus();
+                }
+                else if ($("#email").is(":focus")){
+                    $("#password").focus();
+                }
+                else if ($("#username").is(":focus")){
+                    $("#retype_password").focus();
+                };
+            }})
+    </script>
 </div>
 {% endblock %}

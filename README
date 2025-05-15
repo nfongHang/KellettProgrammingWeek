@@ -2,12 +2,8 @@ apr 11th 2025
 
 TODO:
 MAKE A BLOODY CAPTCHA
-CSRF attack prevention - important!!!!
 clean up code
-finish requirements page (jesus how many libraries did i import)
-make the 2fa page have a button to resend email if needed
 add recovery method if otp secret is lost
-find a way to get email to send link as alternative method (not really important it just seems easier for the user)
 finish account page
 make method for teachers to be able to create accounts 
 allow classes to be made by teacher accounts
@@ -21,5 +17,11 @@ add timer for each question before it is revealed
 design questions and find way to verify questions (should be relatively okay)
 success
 yippee
+
+plan:
+when account is generated, random seed is generated and stored server side.
+seed is used to generate random inputs
+
+
 
 also clean up your own shit the code is so awful and hard to read rn
