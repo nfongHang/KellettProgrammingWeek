@@ -1,12 +1,12 @@
-apr 11th 2025
+apr 19th 2025
 
 TODO:
 MAKE A BLOODY CAPTCHA
 clean up code
+make a buffer in between screens
 add recovery method if otp secret is lost
 finish account page
-make method for teachers to be able to create accounts 
-allow classes to be made by teacher accounts
+allow classes to be made by accounts
 make the houses thing 
 make a dynamically changing house score thing
 start making index page

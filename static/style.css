@@ -34,6 +34,13 @@
     font-family: consolas;
     padding: 0.35%;
 }
+#top_bar{height:(1.25rem + 2.5vw); 
+    background-color: #131313; 
+    color: #DB9254; 
+    font-size:calc(1rem + 2vw);
+    font-family: consolas;
+    padding: 0.35%;
+}
 #url1:hover{text-decoration: underline;}
 #url2:hover{text-decoration: underline;}
 #url3:hover{text-decoration: underline;}
@@ -44,7 +51,7 @@ a{text-decoration: none;}
     font-size: calc(0.45rem + 0.9vw);
     font-family: consolas;
 }
-#link_button{
+.link_button{
     font-family: consolas;
     color:#67C9FF;
     background-color: #444444;
@@ -145,7 +152,7 @@ form{
     font-size:calc(0.5rem + 1vw);
 }
 
-.button{
+.button[id="link_button"]{
     font-family: consolas;
     color:#E5DEA5;
     background-color: #444444;
@@ -174,6 +181,33 @@ form{
 input[type="radio"] {
     color:#67C9FF;
     size: 20px
+}
+.container {
+position: relative;
+text-align: left;
+color: white;
+width:max-content
+}
+.centered {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 800;
+    font-family: consolas;
+    font-size: calc(0.8rem + 1.6vw)
+}
+.centered_subscript {
+    position: absolute;
+    top: 65%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    font-family: consolas;
+    text-align: center;
+    max-width: fit-content;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: calc(0.2rem + 0.4vw)
 }
 #totp{
     color:#67C9FF;
@@ -213,8 +247,9 @@ input[id="otp_input"]{
 }
 .close{
     border-radius: 150vw;
-    position:absolute;
-    right:3%;
+    position:relative;
+    right:0%;
+    float:right;
     font-size: calc(0.5rem + 1vw);
     background-color: #c7c9e1;
     font-family: consolas;
