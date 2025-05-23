@@ -1,0 +1,18 @@
+<!-- template -->
+{% extends "base.html" %}
+{% block title %}Questions
+{% endblock %}
+<!-- Top bar text -->
+{% block top_bar %}questions
+{% endblock %}
+
+{% block head %}
+{{ super() }}
+{% endblock %}
+
+{% block body %}
+<!--insert body-->
+<div class="box" style="background-color:#808080; padding:1.5vw; margin:1.5vw" class="stringtext">{{ question["question_name"]}}
+<div id={{ question["id"] }} class="box" style="width:80vw; box-shadow: none; padding:2.5vw"><span class="line_num" style="font-size: 2em;"> {{ question["id"] }} | </span><span class="link_text" style="font-size: 2em;">{{ question["question_name"] }} </span></div>
+</div>
+{% endblock %}

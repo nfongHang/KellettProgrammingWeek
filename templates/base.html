@@ -31,8 +31,8 @@
         <div class="background_text" style="position:fixed;z-index: -1; top:7.5vh; user-select: none; margin:1.5vh"></div>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="alert_class" style="position:fixed; transform:translate(-50%,-50%); z-index: 19; left:50vw; height:5vh; width:95vw" hidden>
-                    <div class="alert alert-info" role = "alert" id="{{ messages[-1][0] }}">
+                <div class="alert_class" style="box-shadow: 0px 0px 10px #00000000,0px 0px 10px #00000000,0px 0px 10px #00000000; position:fixed; transform:translate(-50%,-50%); top:11.5vh; z-index: 19; left:50vw; height:5vh; width:95vw" hidden>
+                    <div class="alert alert-info" style="box-shadow: 0px 0px 10px #00000000;" role = "alert" id="{{ messages[-1][0] }}">
                         <span>* {{ messages[-1][1] }}</span>
                         <button class="close" id="alert_close" hidden><span style="position:relative; right:0.05vw;top:-24.5%">×</span></button> 
                     </div>

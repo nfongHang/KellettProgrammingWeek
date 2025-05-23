@@ -13,15 +13,15 @@
 {% block body %}
 <!--insert body-->
 <div class="title_container">
-<div style="position:fixed; top:45vh;right:75vw; background-color: #1B1B1B;" class="titletext" id="title1">Kellett</div>
-<div id="flavor_text" style="display: block; position:fixed; top:45vh;right:47.5vw; font-size: 2.5em;z-index: -1; transform:matrix(0.45, 0, 0, 1, 0, 0);" class="line_num" >// everything programming</div>
-<div style="position:fixed; top:55vh;right:75vw;" class="titletext" id="title2">&lt;<span id="logo_text"></span>/&gt;</div>
+<div style="position:fixed; width:max-content; top:45vh;right:75vw; background-color: #1B1B1B;" class="titletext" id="title1">Kellett</div>
+<div id="flavor_text" style="display: block; width:max-content; position:fixed; top:45vh;right:52.5vw; font-size: 2.5em;z-index: -1; transform:scaleX(0.3);" class="line_num" >// everything programming</div>
+<div style="position:fixed; width:max-content; top:55vh;right:75vw;" class="titletext" id="title2">&lt;/<span id="logo_text"></span>&gt;</div>
 </div>
-<div class="lower_container" style="position:relative; top:435vh; width:100vw; overflow-x:hidden; overflow-y: hidden; height:200vh">
+<div class="lower_container" style="position:relative; top:260vh; width:100vw; overflow-x:hidden; overflow-y: hidden; height:150vh">
     
-<div style="position:absolute; top:0vh; left:-20vw; z-index: -1; background-color: #1f1f1f; border-radius: 100%; width:80vw; height:80vw;">a</div>
-<div style="position:absolute; top:12.5vh; left:40vw; z-index : -1; background-color: #1f1f1f; border-radius: 100%; width:90vw; height:40vw;">a</div>
-<div style="position:absolute; top:50vh; z-index : -1; background-color: #1f1f1f; width:100vw; height:150vh;">a</div>
+<div style="position:absolute; top:0vh; left:-20vw; z-index: -1; background-color: #232323; border-radius: 100%; width:80vw; height:80vw;">a</div>
+<div style="position:absolute; top:12.5vh; left:40vw; z-index : -1; background-color: #232323; border-radius: 100%; width:90vw; height:40vw;">a</div>
+<div style="position:absolute; top:50vh; z-index : -1; background-color: #232323; width:100vw; height:100vh;">a</div>
 <div class="box" style="position:relative; top:30vh; right:20vw; width: 40vw; height:30vh; padding:1vw">
     <form method="post">
     {% if not verified %}
@@ -37,7 +37,7 @@
     </form>
 </div>
 </div>
-<div style="position:relative; top:450vh">a</div>
+<div style="position:relative; top:435vh">a</div>
 <script>
     //deal with doing animation for the title
     $(document).ready(function() {
@@ -46,11 +46,14 @@
     const flavor_text = $("#flavor_text");
     const title = $("#logo_text");
     const text = "Programming";
-    const scroll_spacing=128
+    const scroll_spacing=64;
+    var pause_updating = false
     function check_for_scroll(){
         let vw=Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
         let vh=Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
         if(Math.floor(window.scrollY/scroll_spacing)>text.length+20){
+            // allow scrolling
+            if (pause_updating===false){
             title.html(text)
             title1.css("position","absolute");
             title1.css("top",45/100*vh+scroll_spacing*(text.length+20));
@@ -58,12 +61,15 @@
             title2.css("top",55/100*vh+scroll_spacing*(text.length+20));
             flavor_text.css("position","absolute");
             flavor_text.css("top",45/100*vh+scroll_spacing*(text.length+20));
-            increment_outwards()
+            increment_outwards();
+            pause_updating = true}
         }
         else if (Math.floor(window.scrollY/scroll_spacing)>=text.length+12){
+            // pause action
             title.html(text);
+            pause_updating = false
             title1.css("position","fixed");
-            title1.css("top",45/100*vh)
+            title1.css("top",45/100*vh);
             title2.css("position","fixed");
             title2.css("top",55/100*vh);
             flavor_text.css("position","fixed");
@@ -72,6 +78,7 @@
         else if(Math.floor(window.scrollY/scroll_spacing)>=text.length+1){
             //move outwards
             title.html(text);
+            pause_updating = false
             title1.css("position","fixed");
             title1.css("top",45/100*vh)
             title2.css("position","fixed");
@@ -82,30 +89,39 @@
             
         }
         else{
-        flavor_text.css("display","none")
-        title1.css("position","fixed");
-        title1.css("top",45/100*vh)
-        title2.css("position","fixed");
-        title2.css("top",55/100*vh)
-        title1.css("right",75/100*vw)
-        title2.css("right",75/100*vw)
-        increment_titleEffect();
+            // appending text to the 2nd part of title
+            flavor_text.css("display","none")
+            pause_updating = false
+            title1.css("position","fixed");
+            title1.css("top",45/100*vh)
+            title2.css("position","fixed");
+            title2.css("top",55/100*vh)
+            title1.css("right",75/100*vw)
+            title2.css("right",75/100*vw)
+            increment_titleEffect();
         };
         setTimeout(check_for_scroll,15);
     };
+
+    
     function increment_outwards(){
         let vw=Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-        title1.css("right",Math.min((75/100*vw+5*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+1)*4)),0.85*vw))
-        title2.css("right",Math.max((75/100*vw-5*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+1)*4)),0.65*vw))
+        title1.css("right",Math.min((75/100*vw+5*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+1)*4)),0.81*vw))
+        title2.css("right",Math.max((75/100*vw-5*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+1)*4)),0.67*vw))
         flavor_text.css("display","block");
-        flavor_text.css("transform", ("matrix("+(Math.min(1,
-                                                                (0.45+0.05*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+2)*4))
-                                                                )
-                                                                ).toString()+", 0, 0, 1, 0, 0)"));
-        flavor_text.css("right",Math.max(
-                                                (47.5/100*vw-4.5*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+1)*4))
-                                                ,0.4*vw))
+        flavor_text.css("transform", ("scaleX("+(Math.min(1,
+                                                (0.3+0.025*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+2)*4)))
+                                                ).toString()+")"));
+        console.log(title1.css("right"))
+        flavor_text.css("right",Math.min(52.5/100*vw,Math.max(
+                                        (52.5/100*vw-14*(Math.floor((window.scrollY*4)/scroll_spacing)-(text.length+5)*4))
+                                        ,(parseFloat(title1.css("right"))-
+                                        parseFloat(title1.css("width"))-
+                                        parseFloat(flavor_text.css("width"))-0.01*vw)
+                                        )))
     };
+
+
     function increment_titleEffect(){
         title.html(text.substring(0,Math.floor(window.scrollY/scroll_spacing)))
     };

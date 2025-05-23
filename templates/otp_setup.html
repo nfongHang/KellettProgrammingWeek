@@ -74,7 +74,7 @@
     </div>
     <div class="line_num">
         10 | <span class="commenttext"># Cant find the message?
-            <form style="display : inline" class="resend" method="post"><input type="submit" name="resend_button" id = "link_button" value="Wait for 30 more seconds to resend" disabled/></form></span>
+            <form style="display : inline" class="resend" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/><input type="submit" name="resend_button" class = "link_button" id = "link_button" value="Wait for 30 more seconds to resend" disabled/></form></span>
     </div>
     <br>
     {% endif %}
