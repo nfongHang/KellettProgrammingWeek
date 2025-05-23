@@ -85,7 +85,7 @@
         <label for="email" class="vartext">Email 2FA</span> 
     </div>
     <div class="line_num">
-        08 | <input type="submit" class = "button" value="sign_up()"><br>
+        08 | <input type="submit" class = "link_button" value="sign_up()"><br>
     </div>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     </form>
@@ -97,7 +97,7 @@
     </div>
     <form method="post">
     <div class="line_num">
-        11 | <button type="submit" id="link_button" name="github_sso">github</button>
+        11 | <button type="submit" class="link_button" name="github_sso" style="padding:0.25%"> github <img src="../static/github_logo.png" style="width:1em; position:relative; top:0.125em;right:0.125em"> </button> 
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     </div>
     </form>
@@ -106,7 +106,7 @@
     </div>
     <div class="line_num">
         13 | <span class="commenttext"># already got an account? </span><!--
-     --><a><form style="display : inline" action="login"><input type="submit" id = "link_button" value = "login here!" /></form></a>
+     --><a><form style="display : inline" action="login"><input type="submit" class = "link_button" value = "login here!" /></form></a>
     </div><br>
     <script>
         function update_length(length, width, original_length){

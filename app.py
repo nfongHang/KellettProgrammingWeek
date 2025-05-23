@@ -1,12 +1,13 @@
-# using flask to display site
+# using flask for backend
 from flask import Flask, render_template, redirect, url_for, request, session, flash
+#csrf protection
 from flask_wtf.csrf import CSRFProtect
 #interfacing with mysql
 # hashlib for hashing password - keep all stored passwords hashed and secure when in database
 import bcrypt
 # regex to validate emails
 import re
-#
+#SQL
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
@@ -27,19 +28,25 @@ import qrcode
 from flask_mail import Mail, Message
 import creds
 import uuid
+#SSO
 from authlib.integrations.flask_client import OAuth
-#single sign on
-import workos
+#image uploads
+from werkzeug.utils import secure_filename
+from PIL import Image
+import io
 
 # Creating a Flask instance
 app = Flask(__name__)
+
 # Add the databases
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://root:{creds.sql_pwd}@localhost/main"
 app.config['SECRET_KEY'] = creds.server_secret_key
 csrf = CSRFProtect(app)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1000 * 1000 # limit submissions to 50 mb
 
 # SSO
 oauth = OAuth(app)
+
 # defining the different allowed sso types
 oauth.register(
     name='github',
@@ -53,7 +60,6 @@ oauth.register(
     api_base_url='https://api.github.com/',
     client_kwargs={'scope': 'user:email'},
 )
-
 
 # Create engine
 engine = create_engine(f"mysql+pymysql://root:{creds.sql_pwd}@localhost/main")
@@ -71,7 +77,6 @@ mail=Mail(app)
 # general functions
 def execute_sql(query : str, param={}):
     with engine.connect() as con:
-        print(param)
         result = con.execute(text(query), parameters=param)
         con.commit()
     return result
@@ -109,6 +114,22 @@ def send_2fa_email(address, code):
         print(f"WARNING | Error sending email to {address}:\nError: {e}")
         return False
 
+def github_login():
+    github = oauth.create_client('github')
+    redirect_uri = "http://127.0.0.1:5000/authenticate"
+    session["sso_type"]="github"
+    return github.authorize_redirect(redirect_uri)
+
+def github_authorize(request):
+    """ Creates profile dict and returns it from github SSO """
+    token = oauth.github.authorize_access_token()
+    resp = oauth.github.get('user', token=token)
+    resp.raise_for_status()
+    profile = resp.json()
+    resp = oauth.github.get('user/emails', token=token)
+    resp.raise_for_status()
+    email = resp.json()
+    return profile, email
 
 def checkSessionExpired(expiry_time):
     if datetime.datetime.now().isoformat()>expiry_time:
@@ -150,10 +171,60 @@ def check_valid_session(session):
         session["last_active"]=datetime.datetime.now().isoformat()
     return verified
 
+def login_procedure(session, uid, name):
+    # delete all user credidentials
+        session.clear()
+        # encodes bytes into image that can be displayed
+
+        session.permanent=True # make session permament session - creates persistent cookie
+        session.permanent_session_lifetime=datetime.timedelta(days=7) # set session to expire after 7 days and auto log out the user.
+        # setup logged in session information
+        current_ua = request.headers.get('User-Agent')[:256] # limit length of user agent in order to prevent DOS attack by passing in abnormally long UA 
+        current_ip = request.remote_addr[:45] # 45 bits in order to ensure compatability with ipv6
+        hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                msg=current_ua.encode(), 
+                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+        hashed_ip = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
+                                msg=current_ip.encode(), 
+                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
+        session.update({
+            'uid' : uid, # user uid
+            'last_active' : datetime.datetime.now().isoformat(), # save the last active information
+            'verified' : True, # flag in order to highlight that the user is logged in. This should be safe because the cookie is signed and cannot be easily modified
+            # get the user agent from https headers -- includes information about browser, device etc. store securely by hashing.
+            'user_agent_hash' : hashed_ua,
+            # get user ip from https headers. store securely by hashing
+            'ip_hash' : hashed_ip,
+            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=14)).isoformat(), # set session expiry date to be after 7 days
+            'name' : name
+        })
+        flash("Login Successful!","message")
+        # return to the home site
+        return redirect(url_for("index"))
+
+def get_profile_image(session):
+    try:
+        profile_image=execute_sql("SELECT image, mimetype FROM user_to_profile_pictures WHERE uid=:uid", {'uid':session['uid']}).fetchone()
+    except:
+        profile_image=None
+    if profile_image==None:
+        with open("static/default_avatar.jpg", "rb") as image_file:
+            profile_image = "data:image/png;base64," + base64.b64encode(image_file.read()).decode('utf-8')
+    else:
+        profile_image = f"data:{profile_image[1]};base64," + base64.b64encode(profile_image[0]).decode('utf-8')
+    return profile_image
+def log_out(session):
+    session.clear()
+    flash("Sucessfully logged out.","message")
+    return redirect(url_for("index"))
+
+# Mapping urls & general flask backend logic:
 @app.route("/error/<error_id>", methods = ["GET"])
 def error(error_id):
     return render_template("error.html", error = error_id)
 
+@app.route("/home/", methods = ["POST","GET"])
+@app.route("/home", methods = ["POST","GET"])
 @app.route("/", methods = ["POST","GET"])
 def index():
     #handle top right signup/login OR account button
@@ -163,13 +234,16 @@ def index():
                 # signin
                 return redirect(url_for("signup"))
             #logging out
-            session.clear()
-            flash("Sucessfully logged out.","message")
+            print("uhoh")
+            return log_out(session)
         elif "account" in request.form and "verified" in session:
             return redirect(url_for("account", uid=session["uid"]))
-    return render_template("index.html", verified=check_valid_session(session))
+        elif "to_questions" in request.form:
+            return redirect(url_for("questions"))
+    
+    return render_template("index.html", profile_image=get_profile_image(session), verified=check_valid_session(session))
 
-
+@app.route("/account/", methods = ["POST","GET"])
 @app.route("/account", methods = ["POST","GET"])
 def redirect_account():
     if 'uid' in session:
@@ -179,38 +253,87 @@ def redirect_account():
     
 @app.route("/account/<uid>", methods = ["POST","GET"])
 def account(uid):
+    is_user=False
     uid=uid.replace("%20"," ")
+    uid=uid.replace("_"," ")
     #check for case of username entered instead
     #convert to uid
     if len(uid)!=36 or execute_sql("SELECT username FROM users WHERE uid=:uid",{"uid":uid}).fetchone()==None:
         #try and find uid based on username
         uid=execute_sql("SELECT uid FROM users WHERE username=:username",{"username":uid}).fetchone()[0]
+
     if uid==None:
         return redirect(url_for("error"),error_id=404)
+    
+
     # attempt to fetch user profile picture
-    image=execute_sql("SELECT images FROM user_to_profile_pictures WHERE uid=:uid", {'uid':uid}).fetchone()
+    image=execute_sql("SELECT image, mimetype FROM user_to_profile_pictures WHERE uid=:uid", {'uid':uid}).fetchone()
     if image==None:
-        pass # TODO - SETS IMAGE TO DEFAULT ONE
+        with open("static/default_avatar.jpg", "rb") as image_file:
+            image = "data:image/png;base64," + base64.b64encode(image_file.read()).decode('utf-8')
     else:
-        image = "data:image/png;base64," + base64.b64encode(image).decode('utf-8') # encodes bytes into image that can be displayed
+        image = f"data:{image[1]};base64," + base64.b64encode(image[0]).decode('utf-8') # encodes bytes into image that can be displayed
+
+    # fetch user stats
+    user_info = execute_sql("SELECT house, user_score FROM users WHERE uid=:uid", {"uid":uid}).fetchone()
+    user_house=str(user_info[0])
+    user_score = user_info[1]
     name=execute_sql("SELECT username FROM users WHERE uid=:uid",{"uid":uid}).fetchone()[0]
+    if "uid" in session:
+        is_user = (uid == session["uid"]) # sets is_user to boolean expression where it is true if the current profile is the user
 
     #basic button logic
     if request.method=="POST":
-        if "login_or_out" in request.form:
+        # New avatar logic
+        if "new_avatar" in request.files:
+            img=request.files["new_avatar"]
+            if img is None:
+                flash("Image was unable to be uploaded.", "error")
+            else:
+                try:
+                    img_mimetype=img.mimetype
+                    img_filename=secure_filename(img.filename)
+                    img=Image.open(io.BytesIO(img.stream.read()))
+                    width, height = img.size
+                    new_width = min(width, height)
+                    new_height=new_width
+                    img=img.crop(((width-new_width)/2, (height-new_height)/2, \
+                                new_width+(width-new_width)/2, new_height+(height-new_height)/2))
+                    img=img.resize((320,320))
+                    buffer=io.BytesIO()
+                    img.save(buffer,format=str(img_mimetype[img_mimetype.index("/")+1:]).upper())
+                    img=buffer.getvalue()
+                    if execute_sql("SELECT uid FROM user_to_profile_pictures WHERE uid=:uid",{"uid":session["uid"]}).fetchone() is None:
+                        execute_sql("""INSERT INTO user_to_profile_pictures(uid, image, mimetype, filename) 
+                                    VALUES(:uid, :img, :mimetype, :filename);""",{"uid":session["uid"],
+                                                                                "img": img,
+                                                                                "mimetype": img_mimetype,
+                                                                                "filename":img_filename})
+                    else:
+                        execute_sql("""UPDATE user_to_profile_pictures 
+                                    SET image=:img, mimetype=:mimetype, filename=:filename 
+                                    WHERE uid=:uid;""",{"uid":session["uid"],
+                                                        "img": img,
+                                                        "mimetype": img_mimetype,
+                                                        "filename":img_filename})
+                except Exception as e:
+                    flash(f"Image was unable to be uploaded. Error: {e}", "error")
+                return redirect(url_for("account", uid=session["uid"]))
+        elif "login_or_out" in request.form:
             if not "verified" in session:
                 # signin
                 return redirect(url_for("signup"))
             #logging out
-            session.clear()
-            flash("Sucessfully logged out.","message")
+            flash("Successfully logged out.","message")
+            return log_out(session)
         elif "account" in request.form and "verified" in session:
             return redirect(url_for("account", uid=session["uid"]))
         # check if this is the user's own account
 
+    
+    return render_template("account.html",profile_image=get_profile_image(session), verified=check_valid_session(session), uid=uid, image=image, acc_name=name, is_user=is_user, user_score=user_score, user_house=user_house)
 
-    return render_template("account.html", verified=check_valid_session(session), uid=uid, image=image, acc_name=name)
-
+@app.route("/login/", methods = ["POST", "GET"])
 @app.route("/login", methods = ["POST", "GET"])
 def login():
     if 'verified' in session:
@@ -292,24 +415,7 @@ def login():
                     flash("Email unable to be sent due to unexpected error.", "error")
         return redirect(url_for("authenticate"))
 
-def github_login():
-    github = oauth.create_client('github')
-    redirect_uri = "http://127.0.0.1:5000/authenticate"
-    session["sso_type"]="github"
-    return github.authorize_redirect(redirect_uri)
-
-def github_authorize(request):
-    """ Creates profile dict and returns it from github SSO """
-    token = oauth.github.authorize_access_token()
-    print(token.get('scope'))
-    resp = oauth.github.get('user', token=token)
-    resp.raise_for_status()
-    profile = resp.json()
-    resp = oauth.github.get('user/emails', token=token)
-    resp.raise_for_status()
-    email = resp.json()
-    return profile, email
-
+@app.route("/signup/", methods = ["POST", "GET"])
 @app.route("/signup", methods = ["POST", "GET"])
 def signup():
     if 'verified' in session:
@@ -396,35 +502,7 @@ def signup():
     else:
         return render_template("signup.html")
 
-def login_procedure(uid, name):
-    # delete all user credidentials
-        session.clear()
-        session.permanent=True # make session permament session - creates persistent cookie
-        session.permanent_session_lifetime=datetime.timedelta(days=7) # set session to expire after 7 days and auto log out the user.
-        # setup logged in session information
-        current_ua = request.headers.get('User-Agent')[:256] # limit length of user agent in order to prevent DOS attack by passing in abnormally long UA 
-        current_ip = request.remote_addr[:45] # 45 bits in order to ensure compatability with ipv6
-        hashed_ua = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
-                                msg=current_ua.encode(), 
-                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
-        hashed_ip = hmac.new(key = app.config['SECRET_KEY'].encode(), # use sha256 to hash the user agent and ip using app secret as a key
-                                msg=current_ip.encode(), 
-                                digestmod=hashlib.sha256).hexdigest() #use sha256 to hash, and convert to hex
-        session.update({
-            'uid' : uid, # user uid
-            'last_active' : datetime.datetime.now().isoformat(), # save the last active information
-            'verified' : True, # flag in order to highlight that the user is logged in. This should be safe because the cookie is signed and cannot be easily modified
-            # get the user agent from https headers -- includes information about browser, device etc. store securely by hashing.
-            'user_agent_hash' : hashed_ua,
-            # get user ip from https headers. store securely by hashing
-            'ip_hash' : hashed_ip,
-            'expires_at' : (datetime.datetime.now() + datetime.timedelta(days=14)).isoformat(), # set session expiry date to be after 7 days
-            'name' : name
-        })
-        print("update ok")
-        # return to the home site
-        return redirect(url_for("index"))
-
+@app.route("/authenticate/", methods=["GET","POST"])
 @app.route("/authenticate", methods=["GET","POST"])
 def authenticate():
     #manage sso
@@ -446,7 +524,6 @@ def authenticate():
             uid=user_details.uid
             name=user_details.username
             # 2fa passed
-            verified=True
         else:
             uid=str(uuid.uuid4())
             name=profile['login']
@@ -458,14 +535,13 @@ def authenticate():
                         'userscore': 0,
                         'sso':True
                         })
-            verified=True
+        verified=True
 
     if 'verified' in session or verified:
-        return login_procedure(uid,name)
+        return login_procedure(session, uid, name)
     #check for expiry
     if datetime.datetime.now().isoformat()>session['2fa_expiry'] or session['attempts']>5:
         # timeout, return to signup
-        print(session)
         flash("Exceeded 2fa verification period or exceeded 2fa attempts.", "error")
         return redirect(url_for("signup"))
     
@@ -569,7 +645,7 @@ def authenticate():
 
     # if code is correct, begin to setup new cookie details
     if verified:
-        return login_procedure(uid, name)
+        return login_procedure(session, uid, name)
     
 
 
@@ -578,5 +654,7 @@ def authenticate():
 @app.route("/debug")
 def debug():
     return render_template("2fa_email_template.html", code="069420")
+
+#run
 if __name__ == "__main__":
     app.run(debug=True)

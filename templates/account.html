@@ -10,13 +10,51 @@
 
 {% block body %}
 <!--insert body-->
-<div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*8" class="box">
-    <img src="{{ myImage | safe }}">
-    <div class="stringtext">{{ acc_name }}</div>
-    {% if verified %}
-    <form method="post" action="#">
-    <button type="submit" id="link_button" name="login_or_out" style="float: right; margin-top:1.25vh; margin-right: 1vh;">Log Out?<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/></button>
-    </form>
-    {% endif %}
+<div style = "width: 75vw; height: calc(0.45rem + 0.9vw)*8; padding-left:calc(0.5rem + 1vw); padding-bottom:calc(0.1rem + 0.2vw); padding-right:calc(0.5rem + 1vw); padding-top: (0.1rem + 0.2vw);" class="box">
+    <div class="box" style="background-color: rgba(0, 0, 0, 0.347); padding:calc(0.7rem + 1.4vw);">
+        <div style="position: relative; float:right; right:58.5%;">
+            <div class="line_num">01 | <span class="class_text">import user_info</span></div>
+            <div class="line_num">02 | <span class="vartext">user_score</span> <span class="normaltext">=</span> <span style = "color:{% if user_score>=5 and user_score<15 %}#E3E3E3
+                                                                                                                                      {% elif user_score>=15 and user_score<20 %}#46d7ff; text-shadow: 0px 0px 5px #46d7ff;
+                                                                                                                                      {% elif user_score>=20 %}#ffe046; text-shadow: 0px 0px 7.5px #ffe046;
+                                                                                                                                      {% endif %}">{{ user_score }}</span></div>
+        </div>
+        <div class="container">
+            {% if is_user %}<form method="post" action="#" id="avatar_submit" enctype="multipart/form-data">{% endif %}
+            <img src="{{ image | safe }}" style="border-radius: 50%; height:calc(3.5rem + 7vw); width: calc(3.5rem + 7vw);" {% if is_user %} class="own_user_profile" {% endif %}>
+            {% if is_user %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="centered" id="plus_sign" style="color:rgb(255,255,255);">+</div>
+            <div id="subscript" class="centered_subscript" id="plus_sign" hidden style="color:rgb(255,255,255);">Add a new profile picture?</div>
+            <input type="file" name="new_avatar" id="new_avatar" accept="image/png, image/jpeg" style="display: none;" />
+            </form>
+            {% endif %}
+        </div>
+        <div class="stringtext">> {{ acc_name }}</div>
+        {% if is_user %}
+        <form method="post" action="#">
+        <button type="submit" class="link_button" name="login_or_out" style="float: right; margin-top:0.25vh; margin-right: 1vh;">Log Out?<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/></button>
+        </form>
+        {% endif %}
+    </div>
 </div>
+<script>
+    own_profile = $(".own_user_profile");
+    plus = $("#plus_sign");
+    subscript=$("#subscript")
+    plus.hide();
+    if (own_profile.length>0){
+        own_profile.on( "mouseenter", function(){own_profile.css("filter","brightness(50%)"); plus.show(); subscript.show()}).on( "mouseleave", function(){own_profile.css("filter","brightness(100%)"); plus.hide(); subscript.hide()});
+        plus.on( "mouseenter", function(){own_profile.css("filter","brightness(50%)"); plus.show(); subscript.show()}).on( "mouseleave", function(){own_profile.css("filter","brightness(100%)"); plus.hide(); subscript.hide()});
+        subscript.on( "mouseenter", function(){own_profile.css("filter","brightness(50%)"); plus.show(); subscript.show()}).on( "mouseleave", function(){own_profile.css("filter","brightness(100%)"); plus.hide(); subscript.hide()});
+        own_profile.click(function(){
+            $("#new_avatar").click();
+        });
+        subscript.click(function(){
+            $("#new_avatar").click();
+        });
+        plus.click(function(){$("#new_avatar").click();})
+        $("#new_avatar").change(function(){$( "#avatar_submit" ).trigger( "submit" );})
+    }
+</script>
 {% endblock %}

@@ -52,7 +52,7 @@
      --><span class="inputtext">)</span>
     </div>
     <div class="line_num">
-        05 | <input type="submit" class = "button" value = "login()"><br>
+        05 | <input type="submit" class = "link_button" value = "login()"><br>
     </div>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     </form>
@@ -64,7 +64,7 @@
         07 | <span class="commenttext"># alternatively, you can use your Github/Google/Microsoft account to log in:</span>
     </div>
     <div class="line_num">
-        08 | <button type="submit" id="link_button" name="github_sso">github</button> 
+        08 | <button type="submit" class="link_button" name="github_sso" style="padding:0.25%"> github <img src="../static/github_logo.png" style="width:1em; position:relative; top:0.125em;right:0.125em"> </button> 
     </div>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     </form>
@@ -73,7 +73,7 @@
     </div>
     <div class="line_num">
         10 | <span class="commenttext"># havent gotten an account yet? </span><!--
-     --><a><form style="display : inline" action="signup"><input type="submit" id = "link_button" value = "sign up here!" /></form></a>
+     --><a><form style="display : inline" action="signup"><input type="submit" class = "link_button" value = "sign up here!" /></form></a>
     </div><br>
     <script>
         function update_length(length, width, original_length){

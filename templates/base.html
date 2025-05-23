@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html style="background-color: #1B1B1B;">
+<html style="background-color: #1B1B1B; min-width:55em;">
     <head>
         <script src="../static/jquery-3.7.1.js"></script>
         {% block head %}
-        <title>Kellett Programming | {%block title %}{% endblock %}</title>
+        <title>Kellett Programming | {% block title %}{% endblock %}</title>
         <link rel="icon" type="image/png" href="../static/kellett_logo.png"/>
         <link rel="icon" type="image/png" href="../static/kellett_logo_light.png" media="(prefers-color-scheme:dark)"/>
         <link rel="icon" type="image/png" href="../static/kellett_logo_dark.png" media="(prefers-color-scheme:light)"/>
@@ -12,41 +12,45 @@
         {% endblock %}
     </head>
     <body>
-        <div class="top_bar">
+        <div class="top_bar" style="position: fixed; width:98vw; top:0; left:50vw; transform:translate(-50%,0%); height:7.5vh; z-index:20;">
             C:\<a href="/"><span class="top_bar" id="url1">kellett_programming_week</span></a><a id="2"></a><span class="top_bar" id="url2">{% block top_bar %}{% endblock %}</span><a id="3"></a><span class="top_bar" id="url3">{% block top_bar2 %}{% endblock %}</span>
             <form method="post" action="#">
             {% if verified %}
-                <button type="submit" id="link_button" name="account" style="float: right; margin-top:0.65vh; margin-right: 1vh; font-size: calc(0.35rem + 0.7vw);">
-                    <div>Your account</div>
-                    <div>{{ session["name"] }}</div>
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" name="account" style="border-color:#00000000; background-color: #00000000; float: right; margin-top:0vh; margin-right: 1vh; font-size: calc(0.35rem + 0.7vw);">
+                    <img src={{ profile_image }} style="border-radius: 50%; height:calc(1.25rem + 2.5vw); width: calc(1.25rem + 2.5vw);">
                 </button>
             {% else %}
-                <button type="submit" id="link_button" name="login_or_out" style="float: right; margin-top:1.25vh; margin-right: 1vh;"> Sign in / Log in
+                <button type="submit" class="link_button" name="login_or_out" style="float: right; margin-top:1.25vh; margin-right: 1vh;"> Sign in / Log in
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/></button>
             {% endif %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             </button>
             </form>
         </div>
+        <div style="position:relative; top:7.5vh">
+        <div class="background_text" style="position:fixed;z-index: -1; top:7.5vh; user-select: none; margin:1.5vh"></div>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="alert_class" hidden>
+                <div class="alert_class" style="position:fixed; transform:translate(-50%,-50%); z-index: 19; left:50vw; height:5vh; width:95vw" hidden>
                     <div class="alert alert-info" role = "alert" id="{{ messages[-1][0] }}">
-                        * {{ messages[-1][1] }} <button class="close" id="alert_close" hidden>×</button>
+                        <span>* {{ messages[-1][1] }}</span>
+                        <button class="close" id="alert_close" hidden><span style="position:relative; right:0.05vw;top:-24.5%">×</span></button> 
                     </div>
                 </div>
             {% endif %}
         {% endwith %}
         {% block body %}{% endblock %}
+        </div>
         
         
         <script>
             if ($("#alert_close").length){
                 $(".alert_class").slideDown();
                 $("#alert_close").slideDown();
-                $("#alert_close").click(function(){$(".alert_class").fadeOut(150, function(){$(".alert_class").css({"visibility":"hidden",display:"block"}).slideUp();})});
-                setTimeout(function(){$(".alert_class").fadeOut(150, function(){$(".alert_class").css({"visibility":"hidden",display:"block"}).slideUp();})}, 75*100);
-            };
+                const timeoutID = setTimeout(function(){$(".alert_class").fadeOut(150, function(){$(".alert_class").css({"visibility":"hidden",display:"block"}).slideUp();})}, 75*100);
+                $("#alert_close").click(function(){$(".alert_class").fadeOut(150, function(){$(".alert_class").css({"visibility":"hidden",display:"block"}).slideUp();
+                                                                                            clearTimeout(timeoutID);})});
+                };
             if ($("#url2").text().length>1){
                 $("#2").text("\\");
                 $("#url2").click(function(e){
@@ -59,6 +63,49 @@
                     window.location.href="/"+$("#url3").text();
                 })
             };
+            const page_height = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+            var i = 0;
+            console.log(page_height);
+            const text_file = "../static/bg_code_"+Math.floor(Math.random()*3).toString()+".txt";
+            var data=""
+            function load_text(){
+            $.ajax({url: text_file,
+                datatype: "text",
+                success: function (text) {
+                    globalThis.data=text
+                    bg_typeWriter();
+                }});
+            }
+            const bg_text=$(".background_text")
+            function bg_typeWriter(){
+                if (i<data.length){
+                    if (bg_text.get(0).getBoundingClientRect().bottom>=(page_height*0.985)){
+                        bg_text.html(bg_text.html().substring(bg_text.html().indexOf("<br>")+4));
+                    };
+                    var char=data.charAt(i);
+                    var delay=2.5+Math.floor(Math.random()*8);
+                    if (char==="\n"){
+                        char="<br>";
+                        delay=165+Math.floor(Math.random()*40);
+                    }
+                    else if (char===" "){
+                        char="&nbsp;";
+                        delay = 7.5+Math.floor(Math.random()*10);
+                    }
+                    else if ((char==="=")||(char==="(")||(char===":")){
+                        delay = 20+Math.floor(Math.random()*10);
+                    };
+                    $(".background_text").html($(".background_text").html()+char);
+                    i++;
+                    setTimeout(bg_typeWriter, delay);
+                }
+                else{
+                    // when end is reached, repeat
+                    const text_file = "../static/bg_code_"+Math.floor(Math.random()*3).toString()+".txt";
+                    load_text();
+                }
+            };
+            load_text();
         </script>
     </body>
 </html>
