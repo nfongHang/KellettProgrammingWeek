@@ -15,7 +15,7 @@ function OTPInput() {
         if (i >= 0){inputs[i - 1].focus()}; // go back to the last box
         event.preventDefault()
         }
-      else if (/\d/.test(event.key)) { // Only numbers allowed
+      else if (/^\d$/.test(event.key)) { // Only numbers allowed
         
         event.preventDefault();
         inputs[i].value = event.key;

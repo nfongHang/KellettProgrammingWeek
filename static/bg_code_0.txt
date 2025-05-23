@@ -1,0 +1,260 @@
+from matrix import *
+import numpy as np
+import random
+# for importing data
+import tensorflow
+import keras 
+# for graphing and displaying numbers as graph.
+import matplotlib.pyplot as plt
+# for saving the model:
+import json
+# to calculate time taken for processes.
+import time
+
+train_data, test_data = keras.datasets.mnist.load_data()
+
+# Simple number image recognition model.
+
+class Network:
+    def __init__(self, sizes = [1,1,1]):
+        """Parameter put in is of array containing number of neuron per layer"""
+        # Sizes param dictate the number of neurons in each layer. 
+        self.layer_nums=len(sizes)
+        self.__sizes=sizes
+
+
+        # Weights and biases are all randomly generated at initial stage.
+        # Do not have biases and weights for the input layer.
+
+        # Biases are assigned to neurons in hidden and output layer:
+        # biases[i][j] i being the layer number, j being the neuron number, then the bias for each of the weights
+        self.__biases=[[0
+                      for neuron in range(sizes[layer_num])] 
+                      for layer_num in range(1,self.layer_nums)]
+        
+        # weights will be of a 3d list, weights[i][j][k] i being the layer number, j being the neuron number, k being the weight
+        self.__weights=[[[random.gauss(0,1) 
+                        for weight in range(sizes[layer_num-1])] 
+                        for neuron in range(sizes[layer_num])] 
+                        for layer_num in range(1,self.layer_nums)]
+        
+        # produce table of results of which each row is a one-hot representation of each answer:
+        # one-hot representation means a vector in which only one element is 1 and the rest are 0
+        self.results={i:[0]*10 for i in range(0,11)}
+        for i in range (0,10):
+            self.results[i+1][i]=1
+        
+    def save_model(self, name):
+        print("Saving model...")
+        # method used to produce json file containing model parameters.
+        model = {
+            "model_type" : "Model_1",
+            "sizes" : self.__sizes,
+            "biases" : self.__biases,
+            "weights" : self.__weights
+        }
+        
+        model_file = json.dumps(model, indent=4)
+        try:
+            with open(f"{name.strip(".json")}.json", "w") as file:
+                file.write(model_file)
+            print(f"Model: {name.strip(".json")} Successfully loaded!")
+        except Exception as ex:
+            print(f"File was unable to save. Error: {ex}")
+    
+    def load_model(self, model_file_location):
+        print("Loading Model...")
+        try:
+            with open(f"{model_file_location.strip(".json")}.json", "r") as file:
+                model = json.load(file)
+                if model["model_type"] == "Model_1":
+                    self.__sizes=model["sizes"]
+                    self.__biases=model["biases"]
+                    self.__weights=model["weights"]
+                    self.layer_nums=len(self.__sizes)
+                print(f"Model Loaded!")
+        except Exception as ex:
+            print(f"File was unable to load. Error: {ex}")
+    def feed_forward(self, activations: list):
+        t1=time.time()
+
+        #inputs should be a 1D list containing the activations of all of them
+        #starting from the first hidden layer:
+        for layer in range(1,self.layer_nums):
+            activations=[sigmoid(np.dot(activations,self.__weights[layer-1][neuron]) + self.__biases[layer-1][neuron]) 
+                                    for neuron in range(self.__sizes[layer])]
+        
+        print(f"Time taken to process feed-forwarding: {time.time()-t1}")
+        return activations
+    
+    def stochastic_grad_descent(self, training_data, epochs=1, batch_size=10, learning_rate=0.0001):
+        # Uses mini batch stochastic gradient descent to train the model.
+        # This means that random samples will be taken to form a minibatch, then training model on that data.
+        
+        # produces batch size array of tuples containing label and image data.
+
+        mini_batch=[]
+        start_time=time.time()
+        for epoch in range(epochs):
+            #record time start
+            t1=time.time()
+            for i in range(batch_size):
+                randomindex=random.randint(0,len(training_data[0]))
+                mini_batch.append((training_data[1][randomindex],training_data[0][randomindex]))
+            mean_delta_biases, mean_delta_weights = self.__train(mini_batch, batch_size)
+            
+            self.__weights = [[[w-delta_w*learning_rate
+                            for w, delta_w in zip(neuron_weights, neuron_delta_weights)] 
+                            for neuron_weights, neuron_delta_weights in zip(self.__weights[layer], mean_delta_weights[layer])]
+                            for layer in range(self.layer_nums-1)]
+            # mean_delta_weights and mean_delta_biases contain matrices of same size as the normal weight and bias counterparts.
+            # adjust all weights by having w-mean_delta_w * learning rate for each weight.
+
+            self.__biases = [[b-delta_b*learning_rate 
+                            for b, delta_b in zip(self.__biases[layer], mean_delta_biases[layer])] 
+                            for layer in range(self.layer_nums-1)]
+            time_elapsed=time.time()-t1
+            print(f"{epoch+1} / {epochs} epochs complete. Time taken: {time_elapsed}")
+        end_time=time.time()
+        print(f"All epochs complete! Time taken in total to complete {epochs} epochs: {end_time-start_time}")
+
+
+
+    def __train(self, mini_batch, batch_size):
+        # find cost function for each piece of data:
+        total_delta_weights=[]
+        total_delta_biases=[]
+
+        for i in range(batch_size):
+            label=mini_batch[i][0]
+            data=mini_batch[i][1]
+
+            #get delta weights and biases from backprop
+            delta_weights, delta_biases = self.__backprop(label, data)
+            total_delta_weights.append(delta_weights)
+            total_delta_biases.append(delta_biases)
+        
+        mean_delta_biases = np.mean(total_delta_biases, axis=0)
+        
+        mean_delta_weights = [[np.mean([total_delta_weights[i][layer-1][neuron] 
+                               for i in range(0, batch_size-1)], axis=0)
+                               for neuron in range(0, self.__sizes[layer])]
+                               for layer in range(self.layer_nums-1, 0, -1)][::-1]
+
+        return mean_delta_biases, mean_delta_weights
+
+
+    def __backprop(self, label, activations):
+        activations=activations.flatten()
+        # output activations of current model based on activation input:
+        # store all z for use later in cost derivative function.
+        z_stores=[]
+        activations_store=[activations]
+        for layer in range(0,self.layer_nums-1):
+            layer_activations=[]
+            layer_zs=[]
+            # for each neuron in the next layer:
+            for neuron in range(self.__sizes[layer+1]):
+                z=np.dot(activations,self.__weights[layer][neuron]) + self.__biases[layer][neuron]
+                activation=sigmoid(z)
+                layer_activations.append(activation)
+                layer_zs.append(z)
+            activations=layer_activations
+            
+            # add to store
+            z_stores.append(layer_zs)
+            activations_store.append(activations)
+            
+        # difference between actual output and desired output  
+        
+        # iterate through each node for each output node: (and therefore access each weight and bias)
+        delta_weights=[]
+        delta_biases=[]
+        layer=-1
+        
+        delta_activations = [(actual_output-desired_output)
+                              for actual_output, desired_output in zip(activations,self.results[int(label)])]
+        
+        current_deltas = [2*(delta_activations[node])*sigmoid_prime(z_stores[layer][node]) for node in range(self.__sizes[-1])]
+        
+        for layer in range(len(self.__sizes)-1, 0, -1):
+            #i is layer number
+            size=self.__sizes[layer]-1
+            prev_layer_size=self.__sizes[layer-1]-1
+            # delta activations relative to this layer:
+            current_deltas
+            layer_delta_weights=[]
+            for node in range(size+1):
+                node_delta_weights=[]
+                for prev_node in range(prev_layer_size+1):
+                # for each weight connected to that node:
+                # calculate bias gradient:
+                # in order to get the adjustments to the weights of that node:
+                                    #delta * last node acti
+                    node_delta_weights.append(current_deltas[node]*activations_store[layer-1][prev_node])
+                layer_delta_weights.append(node_delta_weights)    
+            delta_biases.append(current_deltas)
+            
+            delta_weights.append(layer_delta_weights)
+            # calculate next layer nodes delta::
+            # for each node in the previous layer,
+
+            #for each node in the previous layer:
+            if layer>1:
+                for prev_node in range(prev_layer_size):
+                    # for each node that connects to the previous layer node:
+                    
+                    # get sum of each delta times the weight associated with node
+                    next_delta=0
+                    #associated weights with the previous layer:
+                    associated_weights=[self.__weights[layer-1][node][prev_node] for node in range(size)]
+
+                    next_delta = sum(current_deltas[node]*associated_weights[node] for node in range(size))
+
+                    current_deltas.append(next_delta)      
+        
+        return delta_weights[::-1], delta_biases[::-1]
+        
+    def evaluate(self, test_data):
+        #test and return number of results answered correctly as a percentage.
+        pass
+# general math functions
+
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+
+def sigmoid_prime(x):
+    return sigmoid(x)*(1-sigmoid(x))
+
+
+training_data_size=np.size(train_data[0][0])
+n=Network()
+n.load_model("model_1.json")
+
+
+def train():
+    n.stochastic_grad_descent(train_data,75,35)
+    n.save_model("model_1.json")
+
+def test():
+# train data:
+# train_data_[i][j] i is either 0 or 1: 1 is array of labels, 0 is array storing matricies of training data, j is index of which to choose the data from.
+    testing=True
+    while testing:
+        index=random.randint(0,training_data_size)
+        acti=train_data[0][index]
+
+        plt.imshow(acti)
+        plt.show()
+        
+        acti=acti.flatten()
+        answer=n.feed_forward(acti)
+        print(answer)
+        input("h")
+        print(np.argmax(answer)+1)
+        print(train_data[1][index])
+
+        if input("Cont?\n > ") == "break":
+            break
+train()
+test()
