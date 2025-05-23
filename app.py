@@ -218,6 +218,15 @@ def log_out(session):
     flash("Sucessfully logged out.","message")
     return redirect(url_for("index"))
 
+#init questions
+all_questions={}
+for question in execute_sql("SELECT * FROM questions").fetchall():
+    if question[2] not in all_questions.keys():
+        all_questions.update({question[2]:[{"id":question[0], "question_desc":question[1],"question_name":question[3]}]})
+    else:
+        all_questions[question[2]].append({"id":question[0], "question_desc":question[1],"question_name":question[3]})
+    #list of dicts of all questions
+
 # Mapping urls & general flask backend logic:
 @app.route("/error/<error_id>", methods = ["GET"])
 def error(error_id):
@@ -234,14 +243,48 @@ def index():
                 # signin
                 return redirect(url_for("signup"))
             #logging out
-            print("uhoh")
             return log_out(session)
         elif "account" in request.form and "verified" in session:
             return redirect(url_for("account", uid=session["uid"]))
         elif "to_questions" in request.form:
-            return redirect(url_for("questions"))
-    
+            return redirect(url_for("question_index"))
+        
+
     return render_template("index.html", profile_image=get_profile_image(session), verified=check_valid_session(session))
+
+@app.route("/questions/", methods = ["POST", "GET"])
+@app.route("/question", methods = ["POST", "GET"])
+@app.route("/question/", methods = ["POST", "GET"])
+@app.route("/questions", methods = ["POST", "GET"])
+def question_index():
+    if request.method=="POST":
+        if "login_or_out" in request.form:
+            if not "verified" in session:
+                # signin
+                return redirect(url_for("signup"))
+            #logging out
+            return log_out(session)
+        elif "account" in request.form and "verified" in session:
+            return redirect(url_for("account", uid=session["uid"]))
+    return render_template("question_index.html", profile_image=get_profile_image(session), verified=check_valid_session(session), all_questions = all_questions)
+
+@app.route("/question/<question_group>/<question_id>", methods=["POST","GET"])
+def question(question_group, question_id):
+    print(all_questions)
+    if request.method=="POST":
+        if "login_or_out" in request.form:
+            if not "verified" in session:
+                # signin
+                return redirect(url_for("signup"))
+            #logging out
+            return log_out(session)
+        elif "account" in request.form and "verified" in session:
+            return redirect(url_for("account", uid=session["uid"]))
+    for q in all_questions[question_group]:
+        if q['id']==int(question_id):
+            question=q
+    return render_template("question_page.html", profile_image=get_profile_image(session), verified=check_valid_session(session), question=question)
+
 
 @app.route("/account/", methods = ["POST","GET"])
 @app.route("/account", methods = ["POST","GET"])

@@ -2,6 +2,7 @@ apr 19th 2025
 
 TODO:
 MAKE A BLOODY CAPTCHA
+setup issue where if the user only has sso used, when logging back in, if they enter in email, automatically redirect to github to continue.
 clean up code
 make a buffer in between screens
 add recovery method if otp secret is lost

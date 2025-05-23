@@ -1,11 +1,9 @@
 <!-- template -->
 {% extends "base.html" %}
-{% block title %}
-[insert page title here]
+{% block title %}Questions
 {% endblock %}
 <!-- Top bar text -->
-{% block top_bar %}
-[insert top bar text here]
+{% block top_bar %}questions
 {% endblock %}
 
 {% block head %}
@@ -14,6 +12,17 @@
 
 {% block body %}
 <!--insert body-->
-
-
+{% for question_group, questions_list in all_questions.items() %}
+    <div class="box" style="background-color:#808080; padding:1.5vw; margin:1.5vw">{{ question_group }}
+    {% for question in questions_list %}
+        <div id={{ question["id"] }} class="box" style="width:80vw; box-shadow: none; padding:2.5vw"><span class="line_num" style="font-size: 2em;"> {{ question["id"] }} | </span><span class="link_text" style="font-size: 2em;">{{ question["question_name"] }} </span></div>
+    {% endfor %}
+</div>
+<script>
+    const question1=$("#1")
+    question1.on("click", function(){
+        window.location.href = '/question/test_questions/1';
+    })
+</script>
+{% endfor %}
 {% endblock %}

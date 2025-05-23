@@ -64,7 +64,14 @@ a{text-decoration: none;}
     border-radius: 15px;
     font-size:calc(0.5rem + 1vw);
 }
-
+.link_text{
+    font-family: consolas;
+    color:#67C9FF;
+    font-size:calc(0.5rem + 1vw);
+}
+.link_text:hover{
+    text-decoration:underline;
+}
 input[type=submit]:hover{
     text-decoration:underline;
 }
